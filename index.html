@@ -18,7 +18,7 @@
   .selectors { display: flex; gap: 16px; margin: 20px 0; }
   .selector-group { flex: 1; }
   .btn-group { display: flex; gap: 0; border-radius: 10px; overflow: hidden; border: 1.5px solid #d2d2d7; }
-  .btn-group button { flex: 1; padding: 10px 0; font-size: 14px; font-weight: 600; border: none; background: #fff; cursor: pointer; transition: all .15s; }
+  .btn-group button { flex: 1; padding: 10px 0; font-size: 13px; font-weight: 600; border: none; background: #fff; cursor: pointer; transition: all .15s; }
   .btn-group button.active { background: #0071e3; color: #fff; }
   .btn-group button:not(.active):hover { background: #f0f0f0; }
   .result-box { margin-top: 24px; display: none; }
@@ -79,6 +79,9 @@
           <div class="btn-group" id="siteGroup">
             <button data-val="htg" class="active">HTG</button>
             <button data-val="xda">XDA</button>
+            <button data-val="muo">MUO</button>
+            <button data-val="ap">AP</button>
+            <button data-val="pl">PL</button>
           </div>
         </div>
         <div class="selector-group">
@@ -86,6 +89,7 @@
           <div class="btn-group" id="purposeGroup">
             <button data-val="tcp" class="active">TCP</button>
             <button data-val="newsletter">Newsletter</button>
+            <button data-val="fb">FB</button>
           </div>
         </div>
       </div>
@@ -109,6 +113,9 @@
           <div class="btn-group" id="nlBrandGroup">
             <button data-val="htg" class="active">HTG</button>
             <button data-val="xda">XDA</button>
+            <button data-val="muo">MUO</button>
+            <button data-val="ap">AP</button>
+            <button data-val="pl">PL</button>
           </div>
         </div>
       </div>
@@ -189,6 +196,11 @@
     return 'https://amazon.com/dp/' + m[1] + '?tag=' + tagId;
   }
 
+  function getTag(brand, purpose) {
+    if (brand === 'ap' && purpose === 'newsletter') return 'ap-newsletter04-20';
+    return brand + '-' + purpose + '-20';
+  }
+
   function generate() {
     var raw = urlInput.value.trim();
     errorEl.classList.remove('visible');
@@ -197,7 +209,7 @@
     copyBtn.classList.remove('copied');
     if (!raw) return;
 
-    var tag = site + '-' + purpose + '-20';
+    var tag = getTag(site, purpose);
     var cleanUrl = tagAmazonUrl(raw, tag);
     if (!cleanUrl) {
       errorEl.textContent = 'Could not find an Amazon ASIN in this URL.';
@@ -265,7 +277,7 @@
   document.getElementById('generateBtn').addEventListener('click', function() {
     var introTitle = document.getElementById('nlIntroTitle').value.trim();
     var introText = document.getElementById('nlIntroText').value.trim();
-    var tag = nlBrand + '-newsletter-20';
+    var tag = getTag(nlBrand, 'newsletter');
     var header = headerMap[nlBrand];
 
     var html = '';
@@ -274,10 +286,12 @@
     html += '<h3>' + esc(introTitle || '[INTRO TITLE]') + '</h3>\n';
     html += (introText ? esc(introText) : '[PASTE INTRO HERE]') + '&nbsp;\n\n';
 
-    // Header image
-    html += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
-    html += '<img alt="' + header.alt + '" height="318" src="' + header.img + '" width="568" />';
-    html += '</a></div>\n\n';
+    // Header image (only for brands that have one)
+    if (header) {
+      html += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
+      html += '<img alt="' + header.alt + '" height="318" src="' + header.img + '" width="568" />';
+      html += '</a></div>\n\n';
+    }
 
     // Products
     var cards = container.querySelectorAll('.product-card');
