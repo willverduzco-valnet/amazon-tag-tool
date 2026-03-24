@@ -97,28 +97,17 @@
 
     if (!raw) return;
 
-    let url;
-    try { url = new URL(raw); } catch {
-      errorEl.textContent = 'Not a valid URL.';
+    // Extract ASIN from anywhere in the input
+    const asinMatch = raw.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+    if (!asinMatch) {
+      errorEl.textContent = 'Could not find an Amazon ASIN in this URL.';
       errorEl.classList.add('visible');
       return;
     }
 
-    if (!url.hostname.match(/amazon\.(com|co\.\w+|ca|de|fr|it|es|in|jp|com\.au|com\.br|com\.mx|nl|sg|se|pl|com\.be|com\.tr)/)) {
-      errorEl.textContent = 'Not an Amazon domain.';
-      errorEl.classList.add('visible');
-      return;
-    }
-
-    // Strip to just the product path: /dp/ASIN or /gp/product/ASIN
-    let cleanPath = url.pathname;
-    const dpMatch = cleanPath.match(/\/(dp|gp\/product)\/([A-Z0-9]{10})/);
-    if (dpMatch) {
-      cleanPath = '/' + dpMatch[1] + '/' + dpMatch[2];
-    }
-
+    const asin = asinMatch[1];
     const tag = site + '-' + purpose + '-20';
-    const cleanUrl = url.origin + cleanPath + '?tag=' + tag;
+    const cleanUrl = 'https://amazon.com/dp/' + asin + '?tag=' + tag;
 
     tagBadge.textContent = tag;
     resultUrl.textContent = cleanUrl;
