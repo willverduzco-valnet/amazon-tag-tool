@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon Tag Tool</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .container { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.08); padding: 40px; width: 100%; max-width: 600px; }
+  h1 { font-size: 22px; margin-bottom: 24px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #555; text-transform: uppercase; letter-spacing: .5px; }
+  input[type="text"] { width: 100%; padding: 12px 14px; border: 1.5px solid #d2d2d7; border-radius: 10px; font-size: 15px; outline: none; transition: border-color .15s; }
+  input[type="text"]:focus { border-color: #0071e3; }
+  .selectors { display: flex; gap: 16px; margin: 20px 0; }
+  .selector-group { flex: 1; }
+  .btn-group { display: flex; gap: 0; border-radius: 10px; overflow: hidden; border: 1.5px solid #d2d2d7; }
+  .btn-group button { flex: 1; padding: 10px 0; font-size: 14px; font-weight: 600; border: none; background: #fff; cursor: pointer; transition: all .15s; }
+  .btn-group button.active { background: #0071e3; color: #fff; }
+  .btn-group button:not(.active):hover { background: #f0f0f0; }
+  .result-box { margin-top: 24px; display: none; }
+  .result-box.visible { display: block; }
+  .result-url { width: 100%; padding: 12px 14px; border: 1.5px solid #34c759; border-radius: 10px; font-size: 14px; background: #f0faf3; font-family: 'SF Mono', 'Fira Code', monospace; word-break: break-all; line-height: 1.5; }
+  .tag-badge { display: inline-block; background: #0071e3; color: #fff; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px; margin-bottom: 8px; font-family: monospace; }
+  .copy-btn { margin-top: 12px; width: 100%; padding: 12px; border: none; border-radius: 10px; background: #0071e3; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .15s; }
+  .copy-btn:hover { background: #005bb5; }
+  .copy-btn.copied { background: #34c759; }
+  .error { color: #ff3b30; font-size: 13px; margin-top: 8px; display: none; }
+  .error.visible { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Amazon Tag Tool</h1>
+
+  <label>Amazon URL</label>
+  <input type="text" id="urlInput" placeholder="Paste an Amazon link here..." autofocus>
+  <div class="error" id="error"></div>
+
+  <div class="selectors">
+    <div class="selector-group">
+      <label>Site</label>
+      <div class="btn-group" id="siteGroup">
+        <button data-val="htg" class="active">HTG</button>
+        <button data-val="xda">XDA</button>
+      </div>
+    </div>
+    <div class="selector-group">
+      <label>Purpose</label>
+      <div class="btn-group" id="purposeGroup">
+        <button data-val="tcp" class="active">TCP</button>
+        <button data-val="newsletter">Newsletter</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-box" id="resultBox">
+    <span class="tag-badge" id="tagBadge"></span>
+    <div class="result-url" id="resultUrl"></div>
+    <button class="copy-btn" id="copyBtn">Copy to Clipboard</button>
+  </div>
+</div>
+
+<script>
+  const urlInput = document.getElementById('urlInput');
+  const errorEl = document.getElementById('error');
+  const resultBox = document.getElementById('resultBox');
+  const resultUrl = document.getElementById('resultUrl');
+  const tagBadge = document.getElementById('tagBadge');
+  const copyBtn = document.getElementById('copyBtn');
+
+  let site = 'htg';
+  let purpose = 'tcp';
+
+  function initToggle(groupId, setter) {
+    const group = document.getElementById(groupId);
+    group.addEventListener('click', function(e) {
+      if (e.target.tagName !== 'BUTTON') return;
+      group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      setter(e.target.dataset.val);
+      generate();
+    });
+  }
+
+  initToggle('siteGroup', v => site = v);
+  initToggle('purposeGroup', v => purpose = v);
+
+  urlInput.addEventListener('input', generate);
+
+  function generate() {
+    const raw = urlInput.value.trim();
+    errorEl.classList.remove('visible');
+    resultBox.classList.remove('visible');
+    copyBtn.textContent = 'Copy to Clipboard';
+    copyBtn.classList.remove('copied');
+
+    if (!raw) return;
+
+    let url;
+    try { url = new URL(raw); } catch {
+      errorEl.textContent = 'Not a valid URL.';
+      errorEl.classList.add('visible');
+      return;
+    }
+
+    if (!url.hostname.match(/amazon\.(com|co\.\w+|ca|de|fr|it|es|in|jp|com\.au|com\.br|com\.mx|nl|sg|se|pl|com\.be|com\.tr)/)) {
+      errorEl.textContent = 'Not an Amazon domain.';
+      errorEl.classList.add('visible');
+      return;
+    }
+
+    // Strip to just the product path: /dp/ASIN or /gp/product/ASIN
+    let cleanPath = url.pathname;
+    const dpMatch = cleanPath.match(/\/(dp|gp\/product)\/([A-Z0-9]{10})/);
+    if (dpMatch) {
+      cleanPath = '/' + dpMatch[1] + '/' + dpMatch[2];
+    }
+
+    const tag = site + '-' + purpose + '-20';
+    const cleanUrl = url.origin + cleanPath + '?tag=' + tag;
+
+    tagBadge.textContent = tag;
+    resultUrl.textContent = cleanUrl;
+    resultBox.classList.add('visible');
+  }
+
+  copyBtn.addEventListener('click', function() {
+    navigator.clipboard.writeText(resultUrl.textContent).then(() => {
+      copyBtn.textContent = 'Copied!';
+      copyBtn.classList.add('copied');
+      setTimeout(() => { copyBtn.textContent = 'Copy to Clipboard'; copyBtn.classList.remove('copied'); }, 1500);
+    });
+  });
+</script>
+</body>
+</html>
