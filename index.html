@@ -140,6 +140,21 @@
       </div>
     </div>
 
+    <div class="card" id="pollBlockCard">
+      <h2 class="section-title" style="margin-bottom:12px;">Poll Block (optional)</h2>
+      <div class="field-row">
+        <label>Poll HTML</label>
+        <textarea id="nlPollHtml" rows="3" placeholder="Paste poll HTML from the Poll Link Generator..."></textarea>
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Insert after deal #</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="nlPollPosition" value="1" style="width:60px;text-align:center;">
+          <span style="font-size:13px;color:#888;">Default: after the 1st deal</span>
+        </div>
+      </div>
+    </div>
+
     <div id="productCards"></div>
 
     <button class="generate-btn" id="generateBtn">Generate Newsletter HTML</button>
@@ -289,6 +304,8 @@
     var introText = document.getElementById('nlIntroText').value.trim();
     var tag = getTag(nlBrand, 'newsletter');
     var header = headerMap[nlBrand];
+    var pollHtml = document.getElementById('nlPollHtml').value.trim();
+    var pollPosition = parseInt(document.getElementById('nlPollPosition').value) || 1;
 
     var html = '';
 
@@ -356,6 +373,11 @@
       }
 
       productCount++;
+
+      // Insert poll block after specified deal position
+      if (pollHtml && productCount === pollPosition) {
+        html += '\n' + pollHtml + '\n\n';
+      }
     });
 
     // Final separator
