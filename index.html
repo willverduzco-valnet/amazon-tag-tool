@@ -162,14 +162,14 @@
     <div class="nl-output" id="nlOutput" style="display:none">
       <div class="card">
         <div class="btn-group" id="outputToggle" style="margin-bottom:16px">
-          <button data-val="preview" class="active">Preview</button>
-          <button data-val="code">HTML Code</button>
+          <button data-val="code" class="active">HTML Code</button>
+          <button data-val="preview">Preview</button>
         </div>
-        <div id="outputPreview">
-          <iframe id="nlPreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:600px;background:#fff;"></iframe>
-        </div>
-        <div id="outputCode" style="display:none">
+        <div id="outputCode">
           <textarea id="nlOutputCode" readonly></textarea>
+        </div>
+        <div id="outputPreview" style="display:none">
+          <iframe id="nlPreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:600px;background:#fff;"></iframe>
         </div>
         <button class="copy-btn" id="nlCopyBtn" style="margin-top:12px">Copy HTML</button>
       </div>
@@ -288,12 +288,12 @@
 
   var headerMap = {
     htg: {
-      img: 'https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/03/htg-large.png',
+      img: 'https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/03/newsletter-htg_v2.png',
       alt: 'HTG-Large',
       link: 'https://www.howtogeek.com/deals/'
     },
     xda: {
-      img: 'https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/03/xda-large.png',
+      img: 'https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/03/newsletter-xda_v2.png',
       alt: 'XDA-Large',
       link: 'https://www.xda-developers.com/deals/'
     }
@@ -376,7 +376,9 @@
 
       // Insert poll block after specified deal position
       if (pollHtml && productCount === pollPosition) {
-        html += '\n' + pollHtml + '\n\n';
+        // Strip trailing <hr> to avoid duplicate separator with next product
+        var trimmedPoll = pollHtml.replace(/<hr[^>]*>\s*$/, '');
+        html += '\n' + trimmedPoll + '\n\n';
       }
     });
 
