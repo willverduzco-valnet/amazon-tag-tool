@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon Tag Tool</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; padding: 40px 20px; }
+  .page { max-width: 700px; margin: 0 auto; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.08); padding: 32px; margin-bottom: 24px; }
+  h1 { font-size: 22px; margin-bottom: 24px; }
+  h2.section-title { font-size: 18px; margin-bottom: 20px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #555; text-transform: uppercase; letter-spacing: .5px; }
+  input[type="text"], textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #d2d2d7; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; transition: border-color .15s; }
+  input[type="text"]:focus, textarea:focus { border-color: #0071e3; }
+  textarea { resize: vertical; min-height: 60px; }
+  .selectors { display: flex; gap: 16px; margin: 20px 0; }
+  .selector-group { flex: 1; }
+  .btn-group { display: flex; gap: 0; border-radius: 10px; overflow: hidden; border: 1.5px solid #d2d2d7; }
+  .btn-group button { flex: 1; padding: 10px 0; font-size: 13px; font-weight: 600; border: none; background: #fff; cursor: pointer; transition: all .15s; }
+  .btn-group button.active { background: #0071e3; color: #fff; }
+  .btn-group button:not(.active):hover { background: #f0f0f0; }
+  .result-box { margin-top: 24px; display: none; }
+  .result-box.visible { display: block; }
+  .result-url { width: 100%; padding: 12px 14px; border: 1.5px solid #34c759; border-radius: 10px; font-size: 14px; background: #f0faf3; font-family: 'SF Mono', 'Fira Code', monospace; word-break: break-all; line-height: 1.5; }
+  .tag-badge { display: inline-block; background: #0071e3; color: #fff; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px; margin-bottom: 8px; font-family: monospace; }
+  .copy-btn { margin-top: 12px; width: 100%; padding: 12px; border: none; border-radius: 10px; background: #0071e3; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .15s; }
+  .copy-btn:hover { background: #005bb5; }
+  .copy-btn.copied { background: #34c759; }
+  .error { color: #ff3b30; font-size: 13px; margin-top: 8px; display: none; }
+  .error.visible { display: block; }
+
+  /* Newsletter builder */
+  .tabs { display: flex; gap: 0; border-radius: 12px; overflow: hidden; border: 1.5px solid #d2d2d7; margin-bottom: 24px; }
+  .tabs button { flex: 1; padding: 12px 0; font-size: 15px; font-weight: 600; border: none; background: #fff; cursor: pointer; transition: all .15s; }
+  .tabs button.active { background: #1d1d1f; color: #fff; }
+  .tabs button:not(.active):hover { background: #f0f0f0; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .product-card { border: 1.5px solid #e5e5e7; border-radius: 12px; padding: 20px; margin-bottom: 16px; position: relative; }
+  .product-card .product-num { position: absolute; top: -10px; left: 16px; background: #1d1d1f; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 6px; }
+  .product-card.deal-of-day { border-color: #ff9500; }
+  .product-card.deal-of-day .product-num { background: #ff9500; }
+  .product-card.editors-pick { border-color: #af52de; }
+  .product-card.editors-pick .product-num { background: #af52de; }
+  .field-row { margin-bottom: 12px; }
+  .field-row:last-child { margin-bottom: 0; }
+  .field-row-inline { display: flex; gap: 12px; margin-bottom: 12px; }
+  .field-row-inline > div { flex: 1; }
+
+  .nl-output { margin-top: 24px; }
+  .nl-output textarea { min-height: 300px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; background: #f9f9fb; }
+  .generate-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #1d1d1f; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .15s; margin-top: 8px; }
+  .generate-btn:hover { background: #333; }
+
+  /* Mode toggle (single / bulk) */
+  .mode-toggle { display: flex; gap: 0; border-radius: 8px; overflow: hidden; border: 1.5px solid #d2d2d7; margin-bottom: 20px; max-width: 220px; }
+  .mode-toggle button { flex: 1; padding: 7px 0; font-size: 12px; font-weight: 600; border: none; background: #fff; cursor: pointer; transition: all .15s; text-transform: uppercase; letter-spacing: .3px; }
+  .mode-toggle button.active { background: #1d1d1f; color: #fff; }
+  .mode-toggle button:not(.active):hover { background: #f0f0f0; }
+
+  /* Bulk textareas */
+  .bulk-area { width: 100%; min-height: 160px; resize: vertical; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.6; }
+  .bulk-output { background: #f0faf3; border-color: #34c759; }
+  .bulk-count { font-size: 12px; color: #888; margin-top: 6px; }
+
+  /* Cleaner options */
+  .cleaner-options { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
+  .cleaner-option { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .cleaner-option input[type="checkbox"] { width: 16px; height: 16px; accent-color: #0071e3; cursor: pointer; }
+  .affiliate-options { margin-top: 16px; padding: 16px; background: #f9f9fb; border-radius: 10px; border: 1.5px solid #e5e5e7; }
+  .affiliate-options.hidden { display: none; }
+  .info-note { font-size: 13px; color: #ff9500; margin-top: 12px; font-weight: 600; text-align: center; padding: 8px 12px; background: #fff8ef; border: 1.5px solid #ff9500; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="tabs">
+    <button class="active" data-tab="tagger">Amazon URL Tagger</button>
+    <button data-tab="cleaner">URL Cleaner</button>
+    <button data-tab="newsletter">Deals Newsletter Builder</button>
+  </div>
+
+  <!-- TAB 1: Amazon URL Tagger -->
+  <div class="tab-content active" id="tab-tagger">
+    <div class="card">
+      <h1>Amazon Tag Tool</h1>
+
+      <div class="mode-toggle" id="amzModeToggle">
+        <button class="active" data-val="single">Single</button>
+        <button data-val="bulk">Bulk</button>
+      </div>
+
+      <!-- Single mode -->
+      <div id="amzSingleMode">
+        <label>Amazon URL</label>
+        <input type="text" id="urlInput" placeholder="Paste an Amazon link here..." autofocus>
+        <div class="error" id="error"></div>
+      </div>
+
+      <!-- Bulk mode -->
+      <div id="amzBulkMode" style="display:none">
+        <label>Amazon URLs (one per line)</label>
+        <textarea class="bulk-area" id="amzBulkInput" placeholder="Paste multiple Amazon URLs here, one per line..."></textarea>
+        <div class="error" id="amzBulkError"></div>
+      </div>
+
+      <div class="selectors">
+        <div class="selector-group">
+          <label>Site</label>
+          <div class="btn-group" id="siteGroup">
+            <button data-val="htg" class="active">HTG</button>
+            <button data-val="xda">XDA</button>
+            <button data-val="muo">MUO</button>
+            <button data-val="ap">AP</button>
+            <button data-val="pl">PL</button>
+          </div>
+        </div>
+        <div class="selector-group">
+          <label>Purpose</label>
+          <div class="btn-group" id="purposeGroup">
+            <button data-val="tcp" class="active">TCP</button>
+            <button data-val="newsletter">Newsletter</button>
+            <button data-val="fb">FB</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Single result -->
+      <div class="result-box" id="resultBox">
+        <span class="tag-badge" id="tagBadge"></span>
+        <div class="result-url" id="resultUrl"></div>
+        <button class="copy-btn" id="copyBtn">Copy to Clipboard</button>
+      </div>
+
+      <!-- Bulk result -->
+      <div class="result-box" id="amzBulkResultBox">
+        <label>Tagged URLs</label>
+        <textarea class="bulk-area bulk-output" id="amzBulkOutput" readonly></textarea>
+        <div class="bulk-count" id="amzBulkCount"></div>
+        <button class="copy-btn" id="amzBulkCopyBtn">Copy All to Clipboard</button>
+      </div>
+
+      <div style="margin-top:24px;padding:16px;background:#f9f9fb;border-radius:10px;font-size:13px;color:#666;line-height:1.6;">
+        <strong style="color:#1d1d1f;">Notes</strong>
+        <ul style="margin:8px 0 0 16px;padding:0;">
+          <li>This tool is intended for use with any Amazon.com (US) URL. It intentionally does not work with Amazon.ca or any other regional Amazon store to prevent region-locked deals issues.</li>
+          <li>The Deals Newsletter Builder tab automatically affiliates all Amazon URLs. There is no need to use this tab when building a newsletter.</li>
+          <li>The URL is stripped down to just the ASIN (product ID). All tracking parameters, referral codes, and slug text from the original link are removed.</li>
+          <li>AP uses a non-standard newsletter tag (<code style="font-size:12px;background:#e5e5e7;padding:1px 5px;border-radius:4px;">ap-newsletter04-20</code>). All other brand/purpose combinations follow the standard naming pattern.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Deals Newsletter Builder -->
+  <div class="tab-content" id="tab-newsletter">
+    <div class="card">
+      <h2 class="section-title">Deals Newsletter Builder</h2>
+
+      <div class="selectors" style="margin-top:0">
+        <div class="selector-group">
+          <label>Brand</label>
+          <div class="btn-group" id="nlBrandGroup">
+            <button data-val="htg" class="active">HTG</button>
+            <button data-val="xda">XDA</button>
+            <button data-val="muo">MUO</button>
+            <button data-val="ap">AP</button>
+            <button data-val="pl">PL</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label>Intro Title</label>
+        <input type="text" id="nlIntroTitle" placeholder="e.g. Today's Best Deals">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Intro Text</label>
+        <textarea id="nlIntroText" rows="3" placeholder="Write your intro paragraph here..."></textarea>
+      </div>
+    </div>
+
+    <div class="card" id="pollBlockCard">
+      <h2 class="section-title" style="margin-bottom:12px;">Poll Block (optional)</h2>
+      <div class="field-row">
+        <label>Poll HTML</label>
+        <textarea id="nlPollHtml" rows="3" placeholder="Paste poll HTML from the Poll Link Generator..."></textarea>
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Insert after deal #</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="nlPollPosition" value="1" style="width:60px;text-align:center;">
+          <span style="font-size:13px;color:#888;">Default: after the 1st deal</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="productCards"></div>
+
+    <button class="generate-btn" id="generateBtn">Generate Newsletter HTML</button>
+
+    <div class="nl-output" id="nlOutput" style="display:none">
+      <div class="card">
+        <div class="btn-group" id="outputToggle" style="margin-bottom:16px">
+          <button data-val="code" class="active">HTML Code</button>
+          <button data-val="preview">Preview</button>
+        </div>
+        <div id="outputCode">
+          <textarea id="nlOutputCode" readonly></textarea>
+        </div>
+        <div id="outputPreview" style="display:none">
+          <iframe id="nlPreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:600px;background:#fff;"></iframe>
+        </div>
+        <button class="copy-btn" id="nlCopyBtn" style="margin-top:12px">Copy HTML</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: URL Cleaner -->
+  <div class="tab-content" id="tab-cleaner">
+    <div class="card">
+      <h1>URL Cleaner</h1>
+
+      <div class="mode-toggle" id="clnModeToggle">
+        <button class="active" data-val="single">Single</button>
+        <button data-val="bulk">Bulk</button>
+      </div>
+
+      <!-- Single mode -->
+      <div id="clnSingleMode">
+        <label>URL</label>
+        <input type="text" id="clnInput" placeholder="Paste any URL to clean...">
+        <div class="error" id="clnError"></div>
+      </div>
+
+      <!-- Bulk mode -->
+      <div id="clnBulkMode" style="display:none">
+        <label>URLs (one per line)</label>
+        <textarea class="bulk-area" id="clnBulkInput" placeholder="Paste multiple URLs here, one per line..."></textarea>
+        <div class="error" id="clnBulkError"></div>
+      </div>
+
+      <div class="cleaner-options">
+        <label class="cleaner-option"><input type="checkbox" id="clnYtShorten"> Shorten YouTube to youtu.be</label>
+        <label class="cleaner-option"><input type="checkbox" id="clnAffiliate"> Affiliate Amazon URLs</label>
+      </div>
+
+      <div class="affiliate-options hidden" id="clnAffiliateOptions">
+        <div class="selectors" style="margin:0">
+          <div class="selector-group">
+            <label>Brand</label>
+            <div class="btn-group" id="clnBrandGroup">
+              <button data-val="htg" class="active">HTG</button>
+              <button data-val="xda">XDA</button>
+              <button data-val="muo">MUO</button>
+              <button data-val="ap">AP</button>
+              <button data-val="pl">PL</button>
+            </div>
+          </div>
+          <div class="selector-group">
+            <label>Purpose</label>
+            <div class="btn-group" id="clnPurposeGroup">
+              <button data-val="tcp" class="active">TCP</button>
+              <button data-val="newsletter">Newsletter</button>
+              <button data-val="fb">FB</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Single result -->
+      <div class="result-box" id="clnResultBox">
+        <div class="result-url" id="clnResultUrl"></div>
+        <button class="copy-btn" id="clnCopyBtn">Copy to Clipboard</button>
+        <div class="info-note" id="clnNote" style="display:none"></div>
+      </div>
+
+      <!-- Bulk result -->
+      <div class="result-box" id="clnBulkResultBox">
+        <label>Cleaned URLs</label>
+        <textarea class="bulk-area bulk-output" id="clnBulkOutput" readonly></textarea>
+        <div class="bulk-count" id="clnBulkCount"></div>
+        <button class="copy-btn" id="clnBulkCopyBtn">Copy All to Clipboard</button>
+        <div class="info-note" id="clnBulkNote" style="display:none"></div>
+      </div>
+
+      <div style="margin-top:24px;padding:16px;background:#f9f9fb;border-radius:10px;font-size:13px;color:#666;line-height:1.6;">
+        <strong style="color:#1d1d1f;">What this does</strong>
+        <ul style="margin:8px 0 0 16px;padding:0;">
+          <li>Strips UTM parameters and other tracking codes from any URL.</li>
+          <li>Unwraps redirect wrappers from Facebook, Google, href.li, and BusinessWire.</li>
+          <li>Preserves essential parameters (YouTube video ID/timestamp, search queries, Google Play IDs, etc.).</li>
+          <li>Shortens Amazon, Best Buy, and Walmart product URLs to their cleanest form.</li>
+          <li>Best Buy and Walmart links are not affiliated. Enable "Affiliate Amazon URLs" above to tag Amazon links.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // --- Tabs ---
+  document.querySelector('.tabs').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    document.getElementById('tab-' + e.target.dataset.tab).classList.add('active');
+  });
+
+  // --- Shared helpers ---
+  function initToggle(groupId, setter, cb) {
+    var group = document.getElementById(groupId);
+    group.addEventListener('click', function(e) {
+      if (e.target.tagName !== 'BUTTON') return;
+      group.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+      e.target.classList.add('active');
+      setter(e.target.dataset.val);
+      if (cb) cb();
+    });
+  }
+
+  function initModeToggle(toggleId, singleId, bulkId, onSwitch) {
+    var toggle = document.getElementById(toggleId);
+    toggle.addEventListener('click', function(e) {
+      if (e.target.tagName !== 'BUTTON') return;
+      toggle.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+      e.target.classList.add('active');
+      var mode = e.target.dataset.val;
+      document.getElementById(singleId).style.display = mode === 'single' ? '' : 'none';
+      document.getElementById(bulkId).style.display = mode === 'bulk' ? '' : 'none';
+      if (onSwitch) onSwitch(mode);
+    });
+  }
+
+  function copyWithFeedback(btn, text, label) {
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = label || 'Copy to Clipboard'; btn.classList.remove('copied'); }, 1500);
+    });
+  }
+
+  function tagAmazonUrl(raw, tagId) {
+    var m = raw.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+    if (!m) return null;
+    return 'https://amazon.com/dp/' + m[1] + '?tag=' + tagId;
+  }
+
+  function getTag(brand, purpose) {
+    if (brand === 'ap' && purpose === 'newsletter') return 'ap-newsletter04-20';
+    return brand + '-' + purpose + '-20';
+  }
+
+  // =============================================
+  // URL Cleaner core logic
+  // =============================================
+  function cleanUrl(link, options) {
+    options = options || {};
+    var raw = link.trim();
+    if (!raw) return null;
+
+    // Try to extract a URL if the string contains non-URL text
+    try {
+      var oldLink = new URL(raw);
+    } catch(e) {
+      var extracted = raw.match(/https?:\/\/\S+/);
+      if (extracted) {
+        try { var oldLink = new URL(extracted[0]); } catch(e2) { return null; }
+      } else {
+        return null;
+      }
+    }
+
+    var notes = [];
+
+    // --- Unwrap redirect wrappers ---
+    if (oldLink.host === 'l.facebook.com' && oldLink.searchParams.has('u')) {
+      oldLink = new URL(decodeURI(oldLink.searchParams.get('u')));
+    } else if (oldLink.host === 'href.li') {
+      oldLink = new URL(oldLink.href.split('?')[1]);
+    } else if (oldLink.host === 'www.google.com' && oldLink.pathname === '/url' && oldLink.searchParams.has('url')) {
+      oldLink = new URL(oldLink.searchParams.get('url'));
+    } else if (oldLink.host === 'cts.businesswire.com' && oldLink.searchParams.has('url')) {
+      oldLink = new URL(oldLink.searchParams.get('url'));
+    }
+
+    // --- Build clean URL (strip all params by default) ---
+    var newLink = new URL(oldLink.origin + oldLink.pathname);
+
+    // --- Preserve essential parameters per-site ---
+
+    // Universal: search query
+    if (oldLink.searchParams.has('q')) {
+      newLink.searchParams.append('q', oldLink.searchParams.get('q'));
+    }
+
+    // YouTube
+    if (oldLink.host.endsWith('youtube.com') && oldLink.searchParams.has('v')) {
+      if (options.ytShorten) {
+        var regex = /^.*(youtu\.be\/|embed\/|shorts\/|\?v=|\&v=)(?<videoID>[^#\&\?]*).*/;
+        var match = regex.exec(oldLink.href);
+        if (match && match.groups && match.groups.videoID) {
+          newLink = new URL('https://youtu.be/' + match.groups.videoID);
+        }
+      } else {
+        newLink.searchParams.append('v', oldLink.searchParams.get('v'));
+      }
+      if (oldLink.searchParams.has('t')) {
+        newLink.searchParams.append('t', oldLink.searchParams.get('t'));
+      }
+    } else if (oldLink.host.endsWith('youtube.com') && oldLink.pathname.includes('playlist') && oldLink.searchParams.has('list')) {
+      newLink.searchParams.append('list', oldLink.searchParams.get('list'));
+    } else if (oldLink.host === 'youtu.be' && oldLink.searchParams.has('t')) {
+      newLink.searchParams.append('t', oldLink.searchParams.get('t'));
+    }
+
+    // Google Play
+    if (oldLink.host === 'play.google.com' && oldLink.searchParams.has('id')) {
+      newLink.searchParams.append('id', oldLink.searchParams.get('id'));
+    }
+
+    // Macy's
+    if (oldLink.host === 'www.macys.com' && oldLink.searchParams.has('ID')) {
+      newLink.searchParams.append('ID', oldLink.searchParams.get('ID'));
+    }
+
+    // Facebook story
+    if (oldLink.host === 'www.facebook.com' && oldLink.pathname.includes('story.php')) {
+      newLink.searchParams.append('story_fbid', oldLink.searchParams.get('story_fbid'));
+      newLink.searchParams.append('id', oldLink.searchParams.get('id'));
+    }
+
+    // Amazon — shorten to /dp/ASIN
+    if (oldLink.host.includes('amazon') && (oldLink.pathname.includes('/dp/') || oldLink.pathname.includes('/d/') || oldLink.pathname.includes('/product/') || oldLink.pathname.includes('/gp/product/'))) {
+      newLink.hostname = newLink.hostname.replace('www.', '');
+      var asinRegex = /\/(?:dp|gp\/product|product|d)\/([A-Z0-9]{10})/i;
+      var asinMatch = asinRegex.exec(oldLink.pathname);
+      if (asinMatch && asinMatch[1]) {
+        newLink.pathname = '/dp/' + asinMatch[1];
+      }
+      // Affiliate if enabled
+      if (options.affiliate && options.affiliateTag) {
+        newLink.searchParams.append('tag', options.affiliateTag);
+      }
+    }
+
+    // Lenovo
+    if (oldLink.host === 'www.lenovo.com' && oldLink.searchParams.has('bundleId')) {
+      newLink.searchParams.append('bundleId', oldLink.searchParams.get('bundleId'));
+    }
+
+    // Best Buy — shorten product URLs, warn on any Best Buy link
+    if (oldLink.host === 'www.bestbuy.com' || oldLink.host === 'bestbuy.com') {
+      if (oldLink.pathname.includes('.p')) {
+        var bbRegex = /\/(\d+)\.p/;
+        var bbMatch = oldLink.pathname.match(bbRegex);
+        if (bbMatch) {
+          newLink.pathname = '/site/' + bbMatch[1] + '.p';
+        }
+      }
+      notes.push('Best Buy link is not affiliated');
+    }
+
+    // Walmart — shorten product URLs, warn on any Walmart link
+    if (oldLink.host === 'www.walmart.com' || oldLink.host === 'walmart.com') {
+      if (oldLink.pathname.includes('/ip/')) {
+        var wmRegex = /\/ip\/.*\/(\d+)/;
+        var wmMatch = oldLink.pathname.match(wmRegex);
+        if (wmMatch) {
+          newLink.pathname = '/ip/' + wmMatch[1];
+        }
+      }
+      notes.push('Walmart link is not affiliated');
+    }
+
+    // Xiaohongshu
+    if (oldLink.host === 'www.xiaohongshu.com' && oldLink.searchParams.has('xsec_token')) {
+      newLink.searchParams.append('xsec_token', oldLink.searchParams.get('xsec_token'));
+    }
+
+    // Apple Weather
+    if (oldLink.host === 'weatherkit.apple.com') {
+      ['lang', 'party', 'ids'].forEach(function(p) {
+        if (oldLink.searchParams.has(p)) newLink.searchParams.append(p, oldLink.searchParams.get(p));
+      });
+    }
+
+    // Webtoons
+    if (oldLink.host === 'www.webtoons.com' && oldLink.searchParams.has('title_no') && oldLink.searchParams.has('episode_no')) {
+      newLink.searchParams.append('title_no', oldLink.searchParams.get('title_no'));
+      newLink.searchParams.append('episode_no', oldLink.searchParams.get('episode_no'));
+    }
+
+    return { url: newLink.toString(), notes: notes };
+  }
+
+  // =============================================
+  // Amazon URL Tagger
+  // =============================================
+  var urlInput = document.getElementById('urlInput');
+  var errorEl = document.getElementById('error');
+  var resultBox = document.getElementById('resultBox');
+  var resultUrl = document.getElementById('resultUrl');
+  var tagBadge = document.getElementById('tagBadge');
+  var copyBtn = document.getElementById('copyBtn');
+
+  var site = 'htg';
+  var purpose = 'tcp';
+  var amzMode = 'single';
+
+  initToggle('siteGroup', function(v) { site = v; }, generateAmz);
+  initToggle('purposeGroup', function(v) { purpose = v; }, generateAmz);
+  initModeToggle('amzModeToggle', 'amzSingleMode', 'amzBulkMode', function(mode) {
+    amzMode = mode;
+    // Hide both result boxes on mode switch
+    resultBox.classList.remove('visible');
+    document.getElementById('amzBulkResultBox').classList.remove('visible');
+  });
+
+  urlInput.addEventListener('input', generateAmz);
+  document.getElementById('amzBulkInput').addEventListener('input', generateAmzBulk);
+
+  function generateAmz() {
+    if (amzMode === 'bulk') { generateAmzBulk(); return; }
+    var raw = urlInput.value.trim();
+    errorEl.classList.remove('visible');
+    resultBox.classList.remove('visible');
+    copyBtn.textContent = 'Copy to Clipboard';
+    copyBtn.classList.remove('copied');
+    if (!raw) return;
+
+    var tag = getTag(site, purpose);
+    var cleanedUrl = tagAmazonUrl(raw, tag);
+    if (!cleanedUrl) {
+      errorEl.textContent = 'Could not find an Amazon ASIN in this URL.';
+      errorEl.classList.add('visible');
+      return;
+    }
+
+    tagBadge.textContent = tag;
+    resultUrl.textContent = cleanedUrl;
+    resultBox.classList.add('visible');
+  }
+
+  function generateAmzBulk() {
+    var lines = document.getElementById('amzBulkInput').value.split(/\n/).filter(function(l) { return l.trim(); });
+    var errEl = document.getElementById('amzBulkError');
+    var outBox = document.getElementById('amzBulkResultBox');
+    errEl.classList.remove('visible');
+    outBox.classList.remove('visible');
+    if (!lines.length) return;
+
+    var tag = getTag(site, purpose);
+    var results = [];
+    var errors = 0;
+    lines.forEach(function(line) {
+      var tagged = tagAmazonUrl(line.trim(), tag);
+      if (tagged) {
+        results.push(tagged);
+      } else {
+        errors++;
+      }
+    });
+
+    if (results.length === 0) {
+      errEl.textContent = 'No valid Amazon ASINs found in any of the URLs.';
+      errEl.classList.add('visible');
+      return;
+    }
+
+    document.getElementById('amzBulkOutput').value = results.join('\n');
+    var countText = results.length + ' URL' + (results.length !== 1 ? 's' : '') + ' tagged';
+    if (errors > 0) countText += ', ' + errors + ' skipped (no ASIN found)';
+    document.getElementById('amzBulkCount').textContent = countText;
+    outBox.classList.add('visible');
+  }
+
+  copyBtn.addEventListener('click', function() {
+    copyWithFeedback(copyBtn, resultUrl.textContent);
+  });
+
+  document.getElementById('amzBulkCopyBtn').addEventListener('click', function() {
+    copyWithFeedback(this, document.getElementById('amzBulkOutput').value, 'Copy All to Clipboard');
+  });
+
+  // =============================================
+  // URL Cleaner tab
+  // =============================================
+  var clnBrand = 'htg';
+  var clnPurpose = 'tcp';
+  var clnMode = 'single';
+
+  initToggle('clnBrandGroup', function(v) { clnBrand = v; }, generateClean);
+  initToggle('clnPurposeGroup', function(v) { clnPurpose = v; }, generateClean);
+  initModeToggle('clnModeToggle', 'clnSingleMode', 'clnBulkMode', function(mode) {
+    clnMode = mode;
+    document.getElementById('clnResultBox').classList.remove('visible');
+    document.getElementById('clnBulkResultBox').classList.remove('visible');
+  });
+
+  // Toggle affiliate options visibility
+  document.getElementById('clnAffiliate').addEventListener('change', function() {
+    document.getElementById('clnAffiliateOptions').classList.toggle('hidden', !this.checked);
+    generateClean();
+  });
+  document.getElementById('clnYtShorten').addEventListener('change', generateClean);
+
+  document.getElementById('clnInput').addEventListener('input', generateClean);
+  document.getElementById('clnBulkInput').addEventListener('input', generateCleanBulk);
+
+  function getCleanerOptions() {
+    var affiliateChecked = document.getElementById('clnAffiliate').checked;
+    return {
+      ytShorten: document.getElementById('clnYtShorten').checked,
+      affiliate: affiliateChecked,
+      affiliateTag: affiliateChecked ? getTag(clnBrand, clnPurpose) : null
+    };
+  }
+
+  function generateClean() {
+    if (clnMode === 'bulk') { generateCleanBulk(); return; }
+    var raw = document.getElementById('clnInput').value.trim();
+    var errEl = document.getElementById('clnError');
+    var resBox = document.getElementById('clnResultBox');
+    var resUrl = document.getElementById('clnResultUrl');
+    var noteEl = document.getElementById('clnNote');
+    errEl.classList.remove('visible');
+    resBox.classList.remove('visible');
+    noteEl.style.display = 'none';
+    if (!raw) return;
+
+    var result = cleanUrl(raw, getCleanerOptions());
+    if (!result) {
+      errEl.textContent = 'Could not parse a valid URL from the input.';
+      errEl.classList.add('visible');
+      return;
+    }
+
+    resUrl.textContent = result.url;
+    if (result.notes.length > 0) {
+      noteEl.textContent = result.notes.join('. ') + '.';
+      noteEl.style.display = 'block';
+    }
+    resBox.classList.add('visible');
+  }
+
+  function generateCleanBulk() {
+    var lines = document.getElementById('clnBulkInput').value.split(/\n/).filter(function(l) { return l.trim(); });
+    var errEl = document.getElementById('clnBulkError');
+    var outBox = document.getElementById('clnBulkResultBox');
+    var noteEl = document.getElementById('clnBulkNote');
+    errEl.classList.remove('visible');
+    outBox.classList.remove('visible');
+    noteEl.style.display = 'none';
+    if (!lines.length) return;
+
+    var opts = getCleanerOptions();
+    var results = [];
+    var errors = 0;
+    var allNotes = {};
+    lines.forEach(function(line) {
+      var result = cleanUrl(line.trim(), opts);
+      if (result) {
+        results.push(result.url);
+        result.notes.forEach(function(n) { allNotes[n] = true; });
+      } else {
+        errors++;
+      }
+    });
+
+    if (results.length === 0) {
+      errEl.textContent = 'No valid URLs found in the input.';
+      errEl.classList.add('visible');
+      return;
+    }
+
+    document.getElementById('clnBulkOutput').value = results.join('\n');
+    var countText = results.length + ' URL' + (results.length !== 1 ? 's' : '') + ' cleaned';
+    if (errors > 0) countText += ', ' + errors + ' skipped (invalid)';
+    document.getElementById('clnBulkCount').textContent = countText;
+
+    var noteKeys = Object.keys(allNotes);
+    if (noteKeys.length > 0) {
+      noteEl.textContent = noteKeys.join('. ') + '.';
+      noteEl.style.display = 'block';
+    }
+
+    outBox.classList.add('visible');
+  }
+
+  document.getElementById('clnCopyBtn').addEventListener('click', function() {
+    copyWithFeedback(this, document.getElementById('clnResultUrl').textContent);
+  });
+
+  document.getElementById('clnBulkCopyBtn').addEventListener('click', function() {
+    copyWithFeedback(this, document.getElementById('clnBulkOutput').value, 'Copy All to Clipboard');
+  });
+
+  // =============================================
+  // Deals Newsletter Builder
+  // =============================================
+  var nlBrand = 'htg';
+  initToggle('nlBrandGroup', function(v) { nlBrand = v; });
+
+  var productDefs = [
+    { label: 'Deal of the Day', cls: 'deal-of-day' },
+    { label: 'Product 2', cls: '' },
+    { label: "Editor's Pick", cls: 'editors-pick' },
+    { label: 'Product 4', cls: '' },
+    { label: 'Product 5', cls: '' },
+    { label: 'Product 6', cls: '' },
+    { label: 'Product 7', cls: '' },
+    { label: 'Product 8', cls: '' }
+  ];
+
+  var container = document.getElementById('productCards');
+  productDefs.forEach(function(def, i) {
+    var card = document.createElement('div');
+    card.className = 'card product-card' + (def.cls ? ' ' + def.cls : '');
+    card.innerHTML =
+      '<span class="product-num">' + def.label + '</span>' +
+      '<div class="field-row"><label>Product Title</label><input type="text" class="nl-title" placeholder="e.g. Sony WH-1000XM5"></div>' +
+      '<div class="field-row-inline">' +
+        '<div><label>Amazon URL</label><input type="text" class="nl-url" placeholder="amazon.com/dp/..."></div>' +
+        '<div><label>CTA Text</label><input type="text" class="nl-cta" placeholder="e.g. Get it for $248" value="Shop Now"></div>' +
+      '</div>' +
+      '<div class="field-row"><label>Image URL</label><input type="text" class="nl-img" placeholder="https://..."></div>' +
+      '<div class="field-row"><label>Description</label><textarea class="nl-desc" rows="2" placeholder="Short product description..."></textarea></div>';
+    container.appendChild(card);
+  });
+
+  var headerMap = {
+    htg: {
+      img: 'https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/03/newsletter-htg_v2.png',
+      alt: 'HTG-Large',
+      link: 'https://www.howtogeek.com/deals/'
+    },
+    xda: {
+      img: 'https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/03/newsletter-xda_v2.png',
+      alt: 'XDA-Large',
+      link: 'https://www.xda-developers.com/deals/'
+    }
+  };
+
+  document.getElementById('generateBtn').addEventListener('click', function() {
+    var introTitle = document.getElementById('nlIntroTitle').value.trim();
+    var introText = document.getElementById('nlIntroText').value.trim();
+    var tag = getTag(nlBrand, 'newsletter');
+    var header = headerMap[nlBrand];
+    var pollHtml = document.getElementById('nlPollHtml').value.trim();
+    var pollPosition = parseInt(document.getElementById('nlPollPosition').value) || 1;
+
+    var html = '';
+
+    // Intro
+    html += '<h3>' + esc(introTitle || '[INTRO TITLE]') + '</h3>\n';
+    html += (introText ? esc(introText) : '[PASTE INTRO HERE]') + '&nbsp;\n\n';
+
+    // Header image (only for brands that have one)
+    if (header) {
+      html += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
+      html += '<img alt="' + header.alt + '" height="318" src="' + header.img + '" width="568" />';
+      html += '</a></div>\n\n';
+    }
+
+    // Products
+    var cards = container.querySelectorAll('.product-card');
+    var sectionLabels = {
+      0: '<h3>DEAL OF THE DAY</h3>\n\n',
+      2: '<h3>EDITOR\'S PICK</h3>\n\n'
+    };
+    var productCount = 0;
+
+    cards.forEach(function(card, i) {
+      var title = card.querySelector('.nl-title').value.trim();
+      var url = card.querySelector('.nl-url').value.trim();
+      var cta = card.querySelector('.nl-cta').value.trim() || 'Shop Now';
+      var img = card.querySelector('.nl-img').value.trim();
+      var desc = card.querySelector('.nl-desc').value.trim();
+
+      // Compute tagged URL early so it's available for title and image
+      var tagged = url ? tagAmazonUrl(url, tag) : null;
+
+      // Skip completely empty products (except first)
+      if (i > 0 && !title && !url) return;
+
+      html += '<hr />&nbsp;\n';
+
+      if (sectionLabels[i]) {
+        html += sectionLabels[i];
+      }
+
+      // Product title as link
+      if (tagged) {
+        html += '<h2><a href="' + tagged + '" rel="noopener noreferrer" target="_blank">' + esc(title || '[PRODUCT TITLE]') + '</a></h2>\n\n';
+      } else {
+        html += '<h2>' + esc(title || '[PRODUCT TITLE]') + '</h2>\n\n';
+      }
+
+      // Image in custom-anchor div
+      if (img && tagged) {
+        html += '<div class="custom-anchor"><a href="' + tagged + '" rel="noreferrer noopener" target="_blank"><img alt="' + esc(title) + '" src="' + esc(img) + '" /></a></div>\n';
+      } else if (img) {
+        html += '<div class="custom-anchor"><img alt="' + esc(title) + '" src="' + esc(img) + '" /></div>\n';
+      } else {
+        html += '[IMAGE]\n';
+      }
+
+      html += (desc ? esc(desc) : '[PRODUCT INTRO]') + '<br />\n';
+
+      // CTA with tagged Amazon link
+      if (tagged) {
+        html += '<span class="affiliate-single"><a href="' + tagged + '" rel="noopener noreferrer" target="_blank">' + esc(cta) + ' &raquo;</a></span>\n\n';
+      } else {
+        html += '<span class="affiliate-single">' + esc(cta) + ' &raquo;</span>\n\n';
+      }
+
+      productCount++;
+
+      // Insert poll block after specified deal position
+      if (pollHtml && productCount === pollPosition) {
+        // Strip trailing <hr> to avoid duplicate separator with next product
+        var trimmedPoll = pollHtml.replace(/<hr[^>]*>\s*$/, '');
+        html += '\n' + trimmedPoll + '\n\n';
+      }
+    });
+
+    // Final separator
+    if (productCount > 0) {
+      html += '<hr />\n';
+    }
+
+    document.getElementById('nlOutputCode').value = html;
+    document.getElementById('nlOutput').style.display = 'block';
+
+    // Render preview
+    var frame = document.getElementById('nlPreviewFrame');
+    var previewHtml = '<!DOCTYPE html><html><head><style>'
+      + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:24px;max-width:600px;color:#1d1d1f;line-height:1.5;}'
+      + 'img{max-width:100%;height:auto;border-radius:8px;}'
+      + 'h2{font-size:20px;margin:12px 0 8px;}'
+      + 'h3{font-size:16px;color:#666;margin:16px 0 8px;}'
+      + 'hr{border:none;border-top:1px solid #e5e5e7;margin:20px 0;}'
+      + 'a{color:#0071e3;text-decoration:none;}'
+      + '.affiliate-single{display:inline-block;margin:8px 0;}'
+      + '.affiliate-single a{background:#0071e3;color:#fff;padding:10px 20px;border-radius:8px;font-weight:600;font-size:14px;display:inline-block;}'
+      + '.custom-anchor img{border-radius:12px;}'
+      + '</style></head><body>' + html + '</body></html>';
+    frame.srcdoc = previewHtml;
+    // Auto-resize iframe to content height
+    frame.onload = function() {
+      try { frame.style.height = frame.contentDocument.body.scrollHeight + 40 + 'px'; } catch(e) {}
+    };
+  });
+
+  // Output toggle (Preview / HTML Code)
+  document.getElementById('outputToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    var isPreview = e.target.dataset.val === 'preview';
+    document.getElementById('outputPreview').style.display = isPreview ? 'block' : 'none';
+    document.getElementById('outputCode').style.display = isPreview ? 'none' : 'block';
+  });
+
+  document.getElementById('nlCopyBtn').addEventListener('click', function() {
+    var btn = this;
+    var code = document.getElementById('nlOutputCode');
+    navigator.clipboard.writeText(code.value).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
+    });
+  });
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+</script>
+</body>
+</html>
