@@ -806,6 +806,22 @@
     }
   };
 
+  // VML button for Outlook compatibility
+  function vmlButton(href, label, bgColor, w, h, radius) {
+    var arcsize = Math.round(radius / h * 100) + '%';
+    var c = '';
+    c += '<!--[if mso]>';
+    c += '<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="' + href + '" style="height:' + h + 'px;v-text-anchor:middle;width:' + w + 'px;" arcsize="' + arcsize + '" strokecolor="' + bgColor + '" fillcolor="' + bgColor + '">';
+    c += '<w:anchorlock/>';
+    c += '<center style="color:#ffffff;font-family:sans-serif;font-size:13px;font-weight:bold;">' + label + '</center>';
+    c += '</v:roundrect>';
+    c += '<![endif]-->';
+    c += '<!--[if !mso]><!-->';
+    c += '<a href="' + href + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background-color:' + bgColor + ';color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:13px;font-weight:700;padding:10px 24px;border-radius:' + radius + 'px;text-decoration:none;">' + label + '</a>';
+    c += '<!--<![endif]-->';
+    return c;
+  }
+
   var brandColors = {
     htg: { cta: '#f7941d', badge: '#2d8e3c' },
     xda: { cta: '#6b35a5', badge: '#2d8e3c' },
@@ -828,7 +844,7 @@
     if (data.img) {
       c += '<tr><td width="' + innerW + '" align="center" style="padding:0;background-color:#f9f9fb;max-width:' + innerW + 'px;">';
       c += '<div style="height:' + imgH + 'px;overflow:hidden;line-height:0;font-size:0;border-radius:12px 12px 0 0;">';
-      var imgTag = '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" width="' + innerW + '" style="display:block;max-width:' + innerW + 'px;" />';
+      var imgTag = '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" width="' + innerW + '" style="display:block;max-width:' + innerW + 'px;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:12px;color:#666;" />';
       if (data.tagged) {
         c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank">' + imgTag + '</a>';
       } else {
@@ -853,10 +869,10 @@
       }
       c += '<tr><td style="padding:0 16px 12px 16px;">' + priceLine + '</td></tr>';
     }
-    // CTA button
+    // CTA button (with VML fallback for Outlook)
     c += '<tr><td align="center" style="padding:0 16px 16px 16px;">';
     if (data.tagged) {
-      c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background-color:' + ctaColor + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;text-decoration:none;mso-padding-alt:0;">' + esc(data.cta) + '</a>';
+      c += vmlButton(data.tagged, esc(data.cta), ctaColor, 150, 36, 6);
     } else {
       c += '<span style="display:inline-block;background-color:' + ctaColor + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(data.cta) + '</span>';
     }
@@ -903,7 +919,7 @@
       if (spHeadline) sponsoredHtml += '<p style="font-size:18px;font-weight:700;color:#1d1d1f;margin:0 0 6px 0;">' + esc(spHeadline) + '</p>';
       if (spBody) sponsoredHtml += '<p style="font-size:14px;color:#666;font-style:italic;margin:0 0 14px 0;">' + esc(spBody) + '</p>';
       if (spCta && spLink) {
-        sponsoredHtml += '<a href="' + esc(spLink) + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background-color:' + colors.cta + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;text-decoration:none;mso-padding-alt:0;">' + esc(spCta) + '</a>';
+        sponsoredHtml += vmlButton(esc(spLink), esc(spCta), colors.cta, 150, 36, 6);
       } else if (spCta) {
         sponsoredHtml += '<span style="display:inline-block;background-color:' + colors.cta + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(spCta) + '</span>';
       }
@@ -965,6 +981,7 @@
     var rowCount = 0;
 
     // Open master table — all content shares one width context
+    html += '<!--[if mso]><xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->\n';
     html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:0 auto;table-layout:fixed;">\n';
 
     // Insert banner at position 0 (before any deals)
