@@ -804,50 +804,50 @@
 
   function buildProductCell(data) {
     var c = '';
-    c += '<td style="width:50%;vertical-align:top;padding:8px;">';
-    c += '<table cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e5e5e7;border-radius:12px;overflow:hidden;">';
+    c += '<td width="50%" valign="top" style="padding:8px;">';
+    c += '<table cellpadding="0" cellspacing="0" border="1" width="100%" style="border-collapse:collapse;border-color:#e5e5e7;">';
     // Image
     if (data.img) {
-      c += '<tr><td style="padding:0;text-align:center;background:#f9f9fb;">';
+      c += '<tr><td align="center" style="padding:0;background-color:#f9f9fb;">';
+      var imgTag = '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" width="100%" style="display:block;" />';
       if (data.tagged) {
-        c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank">';
-        c += '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" style="width:100%;display:block;border-radius:12px 12px 0 0;" />';
-        c += '</a>';
+        c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank">' + imgTag + '</a>';
       } else {
-        c += '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" style="width:100%;display:block;border-radius:12px 12px 0 0;" />';
+        c += imgTag;
       }
       c += '</td></tr>';
     }
-    // Content
-    c += '<tr><td style="padding:16px;">';
     // Title
-    c += '<div style="font-size:14px;font-weight:600;line-height:1.3;margin-bottom:8px;color:#1d1d1f;">' + esc(data.title || '[PRODUCT TITLE]') + '</div>';
+    c += '<tr><td style="padding:16px 16px 8px 16px;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:600;line-height:1.3;color:#1d1d1f;border:none;">';
+    c += esc(data.title) + '</td></tr>';
     // Prices
     if (data.price) {
-      c += '<div style="margin-bottom:4px;">';
+      c += '<tr><td style="padding:0 16px 4px 16px;border:none;">';
       c += '<span style="font-size:24px;font-weight:700;color:#1d1d1f;">$' + esc(data.price) + '</span>';
       if (data.origPrice) {
         c += ' <span style="font-size:14px;color:#999;text-decoration:line-through;">$' + esc(data.origPrice) + '</span>';
       }
-      c += '</div>';
+      c += '</td></tr>';
     }
     // Savings
     if (data.price && data.origPrice) {
-      var cur = parseFloat(data.price);
-      var orig = parseFloat(data.origPrice);
+      var cur = parseFloat(data.price.replace(/,/g, ''));
+      var orig = parseFloat(data.origPrice.replace(/,/g, ''));
       if (!isNaN(cur) && !isNaN(orig) && orig > cur) {
         var saved = (orig - cur).toFixed(2);
         var pct = Math.round((orig - cur) / orig * 100);
-        c += '<div style="font-size:12px;color:#e87400;margin-bottom:12px;">You save $' + saved + ' (' + pct + '%) + free shipping</div>';
+        c += '<tr><td style="padding:0 16px 12px 16px;font-size:12px;color:#e87400;border:none;">You save $' + saved + ' (' + pct + '%) + free shipping</td></tr>';
       }
     }
     // CTA button
+    c += '<tr><td align="center" style="padding:0 16px 16px 16px;border:none;">';
     if (data.tagged) {
-      c += '<div style="text-align:center;"><a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background:#e87400;color:#fff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;text-decoration:none;">' + esc(data.cta) + '</a></div>';
+      c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background-color:#e87400;color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;text-decoration:none;mso-padding-alt:0;">' + esc(data.cta) + '</a>';
     } else {
-      c += '<div style="text-align:center;"><span style="display:inline-block;background:#e87400;color:#fff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(data.cta) + '</span></div>';
+      c += '<span style="display:inline-block;background-color:#e87400;color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;">' + esc(data.cta) + '</span>';
     }
-    c += '</td></tr></table>';
+    c += '</td></tr>';
+    c += '</table>';
     c += '</td>';
     return c;
   }
@@ -874,22 +874,22 @@
 
     var sponsoredHtml = '';
     if (hasSponsored) {
-      sponsoredHtml += '<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:568px;margin:24px auto;border:1px solid #e5e5e7;border-radius:12px;overflow:hidden;">\n';
+      sponsoredHtml += '<table cellpadding="0" cellspacing="0" border="1" width="100%" style="max-width:568px;margin:24px auto;border-collapse:collapse;border-color:#e5e5e7;">\n';
       if (spImg) {
-        sponsoredHtml += '<tr><td style="padding:0;text-align:center;">';
-        if (spLink) sponsoredHtml += '<a href="' + esc(spLink) + '" rel="noopener noreferrer" target="_blank">';
-        sponsoredHtml += '<img alt="' + esc(spHeadline || 'Sponsored') + '" src="' + esc(spImg) + '" style="width:100%;display:block;" />';
-        if (spLink) sponsoredHtml += '</a>';
+        sponsoredHtml += '<tr><td align="center" style="padding:0;border:none;">';
+        var spImgTag = '<img alt="' + esc(spHeadline || 'Sponsored') + '" src="' + esc(spImg) + '" width="100%" style="display:block;" />';
+        if (spLink) sponsoredHtml += '<a href="' + esc(spLink) + '" rel="noopener noreferrer" target="_blank">' + spImgTag + '</a>';
+        else sponsoredHtml += spImgTag;
         sponsoredHtml += '</td></tr>\n';
       }
-      sponsoredHtml += '<tr><td style="padding:20px;text-align:center;">';
-      sponsoredHtml += '<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin-bottom:6px;">SPONSORED</div>';
-      if (spHeadline) sponsoredHtml += '<div style="font-size:18px;font-weight:700;color:#1d1d1f;margin-bottom:6px;">' + esc(spHeadline) + '</div>';
-      if (spBody) sponsoredHtml += '<div style="font-size:14px;color:#666;font-style:italic;margin-bottom:14px;">' + esc(spBody) + '</div>';
+      sponsoredHtml += '<tr><td align="center" style="padding:20px;border:none;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;">';
+      sponsoredHtml += '<p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin:0 0 6px 0;">SPONSORED</p>';
+      if (spHeadline) sponsoredHtml += '<p style="font-size:18px;font-weight:700;color:#1d1d1f;margin:0 0 6px 0;">' + esc(spHeadline) + '</p>';
+      if (spBody) sponsoredHtml += '<p style="font-size:14px;color:#666;font-style:italic;margin:0 0 14px 0;">' + esc(spBody) + '</p>';
       if (spCta && spLink) {
-        sponsoredHtml += '<a href="' + esc(spLink) + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background:#e87400;color:#fff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;text-decoration:none;">' + esc(spCta) + '</a>';
+        sponsoredHtml += '<a href="' + esc(spLink) + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background-color:#e87400;color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;text-decoration:none;mso-padding-alt:0;">' + esc(spCta) + '</a>';
       } else if (spCta) {
-        sponsoredHtml += '<span style="display:inline-block;background:#e87400;color:#fff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(spCta) + '</span>';
+        sponsoredHtml += '<span style="display:inline-block;background-color:#e87400;color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;">' + esc(spCta) + '</span>';
       }
       sponsoredHtml += '</td></tr>\n</table>\n\n';
     }
@@ -965,14 +965,14 @@
       var left = prod;
       var right = (p + 1 < products.length && !sectionLabels[products[p + 1].defIndex]) ? products[p + 1] : null;
 
-      html += '<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:568px;margin:0 auto;">\n<tr>\n';
+      html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:568px;margin:0 auto;">\n<tr>\n';
       html += buildProductCell(left);
 
       if (right) {
         html += '\n' + buildProductCell(right);
         p++; // skip next since we consumed it
       } else {
-        html += '\n<td style="width:50%;"></td>';
+        html += '\n<td width="50%"></td>';
       }
 
       html += '\n</tr>\n</table>\n\n';
