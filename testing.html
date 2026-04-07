@@ -728,9 +728,13 @@
       '<div class="field-row"><label>Product Title</label><input type="text" class="nl-title" placeholder="e.g. Sony WH-1000XM5"></div>' +
       '<div class="field-row-inline">' +
         '<div><label>Amazon URL</label><input type="text" class="nl-url" placeholder="amazon.com/dp/..."></div>' +
-        '<div><label>CTA Text</label><input type="text" class="nl-cta" placeholder="e.g. Get it for $248" value="Shop Now"></div>' +
+        '<div><label>Image URL</label><input type="text" class="nl-img" placeholder="https://..."></div>' +
       '</div>' +
-      '<div class="field-row"><label>Image URL</label><input type="text" class="nl-img" placeholder="https://..."></div>' +
+      '<div class="field-row-inline">' +
+        '<div><label>Current Price</label><input type="text" class="nl-price" placeholder="e.g. 240"></div>' +
+        '<div><label>Original Price</label><input type="text" class="nl-orig-price" placeholder="e.g. 300"></div>' +
+        '<div><label>CTA Text</label><input type="text" class="nl-cta" placeholder="e.g. GET DEAL" value="GET DEAL"></div>' +
+      '</div>' +
       '<div class="field-row"><label>Description</label><textarea class="nl-desc" rows="2" placeholder="Short product description..."></textarea></div>';
     container.appendChild(card);
   });
@@ -747,6 +751,56 @@
       link: 'https://www.xda-developers.com/deals/'
     }
   };
+
+  function buildProductCell(data) {
+    var c = '';
+    c += '<td style="width:50%;vertical-align:top;padding:8px;">';
+    c += '<table cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e5e5e7;border-radius:12px;overflow:hidden;">';
+    // Image
+    if (data.img) {
+      c += '<tr><td style="padding:0;text-align:center;background:#f9f9fb;">';
+      if (data.tagged) {
+        c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank">';
+        c += '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" style="width:100%;display:block;border-radius:12px 12px 0 0;" />';
+        c += '</a>';
+      } else {
+        c += '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" style="width:100%;display:block;border-radius:12px 12px 0 0;" />';
+      }
+      c += '</td></tr>';
+    }
+    // Content
+    c += '<tr><td style="padding:16px;">';
+    // Title
+    c += '<div style="font-size:14px;font-weight:600;line-height:1.3;margin-bottom:8px;color:#1d1d1f;">' + esc(data.title || '[PRODUCT TITLE]') + '</div>';
+    // Prices
+    if (data.price) {
+      c += '<div style="margin-bottom:4px;">';
+      c += '<span style="font-size:24px;font-weight:700;color:#1d1d1f;">$' + esc(data.price) + '</span>';
+      if (data.origPrice) {
+        c += ' <span style="font-size:14px;color:#999;text-decoration:line-through;">$' + esc(data.origPrice) + '</span>';
+      }
+      c += '</div>';
+    }
+    // Savings
+    if (data.price && data.origPrice) {
+      var cur = parseFloat(data.price);
+      var orig = parseFloat(data.origPrice);
+      if (!isNaN(cur) && !isNaN(orig) && orig > cur) {
+        var saved = (orig - cur).toFixed(2);
+        var pct = Math.round((orig - cur) / orig * 100);
+        c += '<div style="font-size:12px;color:#e87400;margin-bottom:12px;">You save $' + saved + ' (' + pct + '%) + free shipping</div>';
+      }
+    }
+    // CTA button
+    if (data.tagged) {
+      c += '<div style="text-align:center;"><a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background:#e87400;color:#fff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;text-decoration:none;">' + esc(data.cta) + '</a></div>';
+    } else {
+      c += '<div style="text-align:center;"><span style="display:inline-block;background:#e87400;color:#fff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(data.cta) + '</span></div>';
+    }
+    c += '</td></tr></table>';
+    c += '</td>';
+    return c;
+  }
 
   document.getElementById('generateBtn').addEventListener('click', function() {
     var introTitle = document.getElementById('nlIntroTitle').value.trim();
@@ -769,71 +823,74 @@
       html += '</a></div>\n\n';
     }
 
-    // Products
+    // Collect product data
     var cards = container.querySelectorAll('.product-card');
-    var sectionLabels = {
-      0: '<h3>DEAL OF THE DAY</h3>\n\n',
-      2: '<h3>EDITOR\'S PICK</h3>\n\n'
-    };
-    var productCount = 0;
-
+    var products = [];
     cards.forEach(function(card, i) {
       var title = card.querySelector('.nl-title').value.trim();
       var url = card.querySelector('.nl-url').value.trim();
-      var cta = card.querySelector('.nl-cta').value.trim() || 'Shop Now';
+      var cta = card.querySelector('.nl-cta').value.trim() || 'GET DEAL';
       var img = card.querySelector('.nl-img').value.trim();
       var desc = card.querySelector('.nl-desc').value.trim();
-
-      // Compute tagged URL early so it's available for title and image
+      var price = card.querySelector('.nl-price').value.trim();
+      var origPrice = card.querySelector('.nl-orig-price').value.trim();
       var tagged = url ? tagAmazonUrl(url, tag) : null;
 
       // Skip completely empty products (except first)
       if (i > 0 && !title && !url) return;
 
-      html += '<hr />&nbsp;\n';
+      products.push({ title: title, url: url, cta: cta, img: img, desc: desc, price: price, origPrice: origPrice, tagged: tagged, defIndex: i });
+    });
 
-      if (sectionLabels[i]) {
-        html += sectionLabels[i];
+    var sectionLabels = {
+      0: "EDITOR'S TOP PICKS",
+      2: "EDITOR'S PICK"
+    };
+    var productCount = 0;
+
+    // Render products in 2-column grid
+    for (var p = 0; p < products.length; p++) {
+      var prod = products[p];
+
+      // Section label before certain slots
+      if (sectionLabels[prod.defIndex] && (prod.defIndex === 0 || productCount > 0)) {
+        html += '<hr style="border:none;border-top:1px solid #e5e5e7;margin:24px 0;" />\n';
+        html += '<h3 style="text-align:center;font-size:13px;font-weight:700;letter-spacing:2px;color:#888;margin:16px 0;">' + sectionLabels[prod.defIndex] + '</h3>\n\n';
       }
 
-      // Product title as link
-      if (tagged) {
-        html += '<h2><a href="' + tagged + '" rel="noopener noreferrer" target="_blank">' + esc(title || '[PRODUCT TITLE]') + '</a></h2>\n\n';
-      } else {
-        html += '<h2>' + esc(title || '[PRODUCT TITLE]') + '</h2>\n\n';
-      }
+      // Start a 2-column row
+      var left = prod;
+      var right = (p + 1 < products.length && !sectionLabels[products[p + 1].defIndex]) ? products[p + 1] : null;
 
-      // Image in custom-anchor div
-      if (img && tagged) {
-        html += '<div class="custom-anchor"><a href="' + tagged + '" rel="noreferrer noopener" target="_blank"><img alt="' + esc(title) + '" src="' + esc(img) + '" /></a></div>\n';
-      } else if (img) {
-        html += '<div class="custom-anchor"><img alt="' + esc(title) + '" src="' + esc(img) + '" /></div>\n';
-      } else {
-        html += '[IMAGE]\n';
-      }
-
-      html += (desc ? esc(desc) : '[PRODUCT INTRO]') + '<br />\n';
-
-      // CTA with tagged Amazon link
-      if (tagged) {
-        html += '<span class="affiliate-single"><a href="' + tagged + '" rel="noopener noreferrer" target="_blank">' + esc(cta) + ' &raquo;</a></span>\n\n';
-      } else {
-        html += '<span class="affiliate-single">' + esc(cta) + ' &raquo;</span>\n\n';
-      }
-
+      html += '<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:568px;margin:0 auto;">\n<tr>\n';
+      html += buildProductCell(left);
       productCount++;
 
-      // Insert poll block after specified deal position
-      if (pollHtml && productCount === pollPosition) {
-        // Strip trailing <hr> to avoid duplicate separator with next product
+      // Insert poll after this product?
+      var insertPollAfterRow = false;
+      if (pollHtml && productCount === pollPosition) insertPollAfterRow = true;
+
+      if (right) {
+        html += '\n' + buildProductCell(right);
+        p++; // skip next since we consumed it
+        productCount++;
+        if (pollHtml && productCount === pollPosition) insertPollAfterRow = true;
+      } else {
+        html += '\n<td style="width:50%;"></td>';
+      }
+
+      html += '\n</tr>\n</table>\n\n';
+
+      if (insertPollAfterRow && pollHtml) {
         var trimmedPoll = pollHtml.replace(/<hr[^>]*>\s*$/, '');
         html += '\n' + trimmedPoll + '\n\n';
+        pollHtml = ''; // only insert once
       }
-    });
+    }
 
     // Final separator
     if (productCount > 0) {
-      html += '<hr />\n';
+      html += '<hr style="border:none;border-top:1px solid #e5e5e7;margin:24px 0;" />\n';
     }
 
     document.getElementById('nlOutputCode').value = html;
@@ -843,17 +900,15 @@
     var frame = document.getElementById('nlPreviewFrame');
     var previewHtml = '<!DOCTYPE html><html><head><style>'
       + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:24px;max-width:600px;color:#1d1d1f;line-height:1.5;}'
-      + 'img{max-width:100%;height:auto;border-radius:8px;}'
+      + 'img{max-width:100%;height:auto;}'
       + 'h2{font-size:20px;margin:12px 0 8px;}'
-      + 'h3{font-size:16px;color:#666;margin:16px 0 8px;}'
-      + 'hr{border:none;border-top:1px solid #e5e5e7;margin:20px 0;}'
+      + 'h3{font-size:13px;color:#888;margin:16px 0 8px;text-align:center;letter-spacing:2px;font-weight:700;}'
+      + 'hr{border:none;border-top:1px solid #e5e5e7;margin:24px 0;}'
       + 'a{color:#0071e3;text-decoration:none;}'
-      + '.affiliate-single{display:inline-block;margin:8px 0;}'
-      + '.affiliate-single a{background:#0071e3;color:#fff;padding:10px 20px;border-radius:8px;font-weight:600;font-size:14px;display:inline-block;}'
+      + 'table{border-spacing:0;border-collapse:separate;}'
       + '.custom-anchor img{border-radius:12px;}'
       + '</style></head><body>' + html + '</body></html>';
     frame.srcdoc = previewHtml;
-    // Auto-resize iframe to content height
     frame.onload = function() {
       try { frame.style.height = frame.contentDocument.body.scrollHeight + 40 + 'px'; } catch(e) {}
     };
