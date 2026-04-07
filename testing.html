@@ -201,8 +201,12 @@
     <div class="card" id="pollBlockCard">
       <h2 class="section-title" style="margin-bottom:12px;">Poll Block (optional)</h2>
       <div class="field-row">
-        <label>Poll HTML</label>
-        <textarea id="nlPollHtml" rows="3" placeholder="Paste poll HTML from the Poll Link Generator..."></textarea>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <label style="margin-bottom:0;">Poll HTML</label>
+          <button class="generate-btn" id="nlPollImportBtn" style="background:#555;font-size:11px;padding:4px 10px;margin:0;width:auto;">Import .txt</button>
+          <input type="file" id="nlPollImportFile" accept=".txt,.html" style="display:none;">
+        </div>
+        <textarea id="nlPollHtml" rows="3" placeholder="Paste poll HTML from the Poll Link Generator..." style="margin-top:6px;"></textarea>
       </div>
       <div class="field-row" style="margin-top:12px">
         <label>Insert after row #</label>
@@ -1063,6 +1067,21 @@
     d.textContent = s;
     return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
+
+  // Poll HTML file import
+  document.getElementById('nlPollImportBtn').addEventListener('click', function() {
+    document.getElementById('nlPollImportFile').click();
+  });
+  document.getElementById('nlPollImportFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      document.getElementById('nlPollHtml').value = ev.target.result;
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
 
   // =============================================
   // Newsletter CSV Export / Import
