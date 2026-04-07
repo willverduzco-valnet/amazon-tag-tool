@@ -889,7 +889,7 @@
 
     var sponsoredHtml = '';
     if (hasSponsored) {
-      sponsoredHtml += '<table cellpadding="0" cellspacing="0" border="0" width="568" style="width:568px;margin:24px auto;table-layout:fixed;">\n<tr><td style="padding:8px;">\n';
+      sponsoredHtml += '<tr><td style="padding:8px;">\n';
       sponsoredHtml += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e5e5e7;border-radius:12px;border-collapse:separate;">\n';
       if (spImg) {
         sponsoredHtml += '<tr><td align="center" style="padding:0;border:none;">';
@@ -908,7 +908,7 @@
         sponsoredHtml += '<span style="display:inline-block;background-color:' + colors.cta + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(spCta) + '</span>';
       }
       sponsoredHtml += '</td></tr>\n</table>\n';
-      sponsoredHtml += '</td></tr>\n</table>\n\n';
+      sponsoredHtml += '</td></tr>\n';
     }
 
     var html = '';
@@ -920,19 +920,13 @@
     // Banner HTML (built once, inserted at configured position)
     var bannerHtml = '';
     if (header) {
-      bannerHtml += '<table cellpadding="0" cellspacing="0" border="0" width="568" style="width:568px;margin:0 auto;table-layout:fixed;"><tr><td style="padding:8px;">';
+      bannerHtml += '<tr><td style="padding:8px;">';
       bannerHtml += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
       bannerHtml += '<img alt="' + header.alt + '" src="' + header.img + '" width="100%" style="display:block;border-radius:12px;" />';
       bannerHtml += '</a></div>';
-      bannerHtml += '</td></tr></table>\n\n';
+      bannerHtml += '</td></tr>\n';
     }
     var bannerInserted = false;
-
-    // Insert banner at position 0 (before any deals)
-    if (header && bannerPosition === 0) {
-      html += bannerHtml;
-      bannerInserted = true;
-    }
 
     // Collect product data
     var cards = container.querySelectorAll('.product-card');
@@ -970,21 +964,30 @@
     };
     var rowCount = 0;
 
+    // Open master table — all content shares one width context
+    html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:0 auto;table-layout:fixed;">\n';
+
+    // Insert banner at position 0 (before any deals)
+    if (header && bannerPosition === 0) {
+      html += bannerHtml;
+      bannerInserted = true;
+    }
+
     // Render products in 2-column grid
     for (var p = 0; p < products.length; p++) {
       var prod = products[p];
 
       // Section label before certain slots
       if (sectionLabels[prod.defIndex] && (prod.defIndex === 0 || rowCount > 0)) {
-        html += '<hr style="border:none;border-top:1px solid #e5e5e7;margin:24px 0;" />\n';
-        html += '<h3 style="text-align:center;font-size:13px;font-weight:700;letter-spacing:2px;color:#888;margin:16px 0;">' + sectionLabels[prod.defIndex] + '</h3>\n\n';
+        html += '<tr><td colspan="2" style="padding:0 8px;"><hr style="border:none;border-top:1px solid #e5e5e7;margin:24px 0;" /></td></tr>\n';
+        html += '<tr><td colspan="2"><h3 style="text-align:center;font-size:13px;font-weight:700;letter-spacing:2px;color:#888;margin:16px 0;">' + sectionLabels[prod.defIndex] + '</h3></td></tr>\n';
       }
 
       // Start a 2-column row
       var left = prod;
       var right = (p + 1 < products.length && !sectionLabels[products[p + 1].defIndex]) ? products[p + 1] : null;
 
-      html += '<table cellpadding="0" cellspacing="0" border="0" width="568" style="width:568px;margin:0 auto;table-layout:fixed;">\n<tr>\n';
+      html += '<tr>\n';
       html += buildProductCell(left, colors);
 
       if (right) {
@@ -994,13 +997,13 @@
         html += '\n<td width="284" style="width:284px;"></td>';
       }
 
-      html += '\n</tr>\n</table>\n\n';
+      html += '\n</tr>\n';
       rowCount++;
 
       // Insert poll after configured row
       if (pollHtml && rowCount === pollPosition) {
         var trimmedPoll = pollHtml.replace(/<hr[^>]*>\s*$/, '');
-        html += '\n' + trimmedPoll + '\n\n';
+        html += '<tr><td colspan="2" style="padding:8px 0;">' + trimmedPoll + '</td></tr>\n';
         pollHtml = ''; // only insert once
       }
 
@@ -1029,8 +1032,11 @@
 
     // Final separator
     if (rowCount > 0) {
-      html += '<hr style="border:none;border-top:1px solid #e5e5e7;margin:24px 0;" />\n';
+      html += '<tr><td colspan="2" style="padding:0 8px;"><hr style="border:none;border-top:1px solid #e5e5e7;margin:24px 0;" /></td></tr>\n';
     }
+
+    // Close master table
+    html += '</table>\n';
 
     document.getElementById('nlOutputCode').value = html;
     document.getElementById('nlOutput').style.display = 'block';
