@@ -785,8 +785,7 @@
       '</div>' +
       '<div class="field-row" style="display:flex;align-items:center;gap:12px;">' +
         '<label class="cleaner-option" style="margin:0;"><input type="checkbox" class="nl-skip-affiliate"> Bypass link processing</label>' +
-      '</div>' +
-      '<div class="field-row"><label>Description</label><textarea class="nl-desc" rows="2" placeholder="Short product description..."></textarea></div>';
+      '</div>';
     container.appendChild(card);
   });
 
@@ -927,7 +926,7 @@
       var url = card.querySelector('.nl-url').value.trim();
       var cta = card.querySelector('.nl-cta').value.trim() || 'GET DEAL';
       var img = card.querySelector('.nl-img').value.trim();
-      var desc = card.querySelector('.nl-desc').value.trim();
+
       var price = card.querySelector('.nl-price').value.trim();
       var origPrice = card.querySelector('.nl-orig-price').value.trim();
       var bypass = card.querySelector('.nl-skip-affiliate').checked;
@@ -946,7 +945,7 @@
       // Skip completely empty products
       if (!title && !url) return;
 
-      products.push({ title: title, url: url, cta: cta, img: img, desc: desc, price: price, origPrice: origPrice, tagged: tagged, defIndex: i });
+      products.push({ title: title, url: url, cta: cta, img: img, price: price, origPrice: origPrice, tagged: tagged, defIndex: i });
     });
 
     var sectionLabels = {
@@ -1127,8 +1126,7 @@
         ['price', String(i + 1), card.querySelector('.nl-price').value],
         ['origPrice', String(i + 1), card.querySelector('.nl-orig-price').value],
         ['cta', String(i + 1), card.querySelector('.nl-cta').value],
-        ['skipAffiliate', String(i + 1), card.querySelector('.nl-skip-affiliate').checked ? '1' : '0'],
-        ['desc', String(i + 1), card.querySelector('.nl-desc').value]
+        ['skipAffiliate', String(i + 1), card.querySelector('.nl-skip-affiliate').checked ? '1' : '0']
       ];
       fields.forEach(function(f) { rows.push(f.map(csvEscape).join(',')); });
     });
@@ -1159,8 +1157,7 @@
       var cards = container.querySelectorAll('.product-card');
       var cardFieldMap = {
         title: '.nl-title', url: '.nl-url', img: '.nl-img',
-        price: '.nl-price', origPrice: '.nl-orig-price', cta: '.nl-cta',
-        desc: '.nl-desc'
+        price: '.nl-price', origPrice: '.nl-orig-price', cta: '.nl-cta'
       };
 
       // Clear all product cards first
