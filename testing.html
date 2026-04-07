@@ -182,6 +182,13 @@
         <label>Intro Text</label>
         <textarea id="nlIntroText" rows="3" placeholder="Write your intro paragraph here..."></textarea>
       </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Banner Position</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="nlBannerPosition" value="end" style="width:80px;text-align:center;">
+          <span style="font-size:13px;color:#888;">"end" or a number (e.g. 2 = after 2nd deal)</span>
+        </div>
+      </div>
     </div>
 
     <div class="card" id="pollBlockCard">
@@ -735,6 +742,9 @@
         '<div><label>Original Price</label><input type="text" class="nl-orig-price" placeholder="e.g. 300"></div>' +
         '<div><label>CTA Text</label><input type="text" class="nl-cta" placeholder="e.g. GET DEAL" value="GET DEAL"></div>' +
       '</div>' +
+      '<div class="field-row" style="display:flex;align-items:center;gap:12px;">' +
+        '<label class="cleaner-option" style="margin:0;"><input type="checkbox" class="nl-skip-affiliate"> Skip affiliate tag</label>' +
+      '</div>' +
       '<div class="field-row"><label>Description</label><textarea class="nl-desc" rows="2" placeholder="Short product description..."></textarea></div>';
     container.appendChild(card);
   });
@@ -809,6 +819,8 @@
     var header = headerMap[nlBrand];
     var pollHtml = document.getElementById('nlPollHtml').value.trim();
     var pollPosition = parseInt(document.getElementById('nlPollPosition').value) || 1;
+    var bannerPosRaw = document.getElementById('nlBannerPosition').value.trim().toLowerCase();
+    var bannerPosition = (bannerPosRaw === 'end' || bannerPosRaw === '') ? Infinity : (parseInt(bannerPosRaw) || Infinity);
 
     var html = '';
 
@@ -816,11 +828,19 @@
     html += '<h3>' + esc(introTitle || '[INTRO TITLE]') + '</h3>\n';
     html += (introText ? esc(introText) : '[PASTE INTRO HERE]') + '&nbsp;\n\n';
 
-    // Header image (only for brands that have one)
+    // Banner HTML (built once, inserted at configured position)
+    var bannerHtml = '';
     if (header) {
-      html += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
-      html += '<img alt="' + header.alt + '" height="318" src="' + header.img + '" width="568" />';
-      html += '</a></div>\n\n';
+      bannerHtml += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
+      bannerHtml += '<img alt="' + header.alt + '" height="318" src="' + header.img + '" width="568" />';
+      bannerHtml += '</a></div>\n\n';
+    }
+    var bannerInserted = false;
+
+    // Insert banner at position 0 (before any deals)
+    if (header && bannerPosition === 0) {
+      html += bannerHtml;
+      bannerInserted = true;
     }
 
     // Collect product data
@@ -834,7 +854,16 @@
       var desc = card.querySelector('.nl-desc').value.trim();
       var price = card.querySelector('.nl-price').value.trim();
       var origPrice = card.querySelector('.nl-orig-price').value.trim();
-      var tagged = url ? tagAmazonUrl(url, tag) : null;
+      var skipAffiliate = card.querySelector('.nl-skip-affiliate').checked;
+      var tagged = null;
+      if (url) {
+        var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+        if (asinMatch) {
+          tagged = skipAffiliate
+            ? 'https://amazon.com/dp/' + asinMatch[1]
+            : 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag;
+        }
+      }
 
       // Skip completely empty products (except first)
       if (i > 0 && !title && !url) return;
@@ -886,6 +915,17 @@
         html += '\n' + trimmedPoll + '\n\n';
         pollHtml = ''; // only insert once
       }
+
+      // Insert banner after configured deal count
+      if (header && !bannerInserted && productCount >= bannerPosition) {
+        html += bannerHtml;
+        bannerInserted = true;
+      }
+    }
+
+    // Insert banner at end if not yet placed
+    if (header && !bannerInserted) {
+      html += bannerHtml;
     }
 
     // Final separator
