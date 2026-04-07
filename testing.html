@@ -806,8 +806,18 @@
     }
   };
 
-  function buildProductCell(data) {
+  var brandColors = {
+    htg: { cta: '#f7941d', badge: '#2d8e3c' },
+    xda: { cta: '#2daae9', badge: '#2d8e3c' },
+    muo: { cta: '#c60d0d', badge: '#2d8e3c' },
+    ap:  { cta: '#e01a4f', badge: '#2d8e3c' },
+    pl:  { cta: '#ed1c24', badge: '#2d8e3c' }
+  };
+
+  function buildProductCell(data, colors) {
     var innerW = 252; // 284 - 16px padding each side
+    var ctaColor = colors.cta;
+    var badgeColor = colors.badge;
     var c = '';
     c += '<td width="284" valign="top" style="width:284px;max-width:284px;padding:8px;">';
     c += '<table cellpadding="0" cellspacing="0" border="0" width="' + innerW + '" style="border:1px solid #e5e5e7;border-radius:12px;border-collapse:separate;table-layout:fixed;width:' + innerW + 'px;max-width:' + innerW + 'px;overflow:hidden;">';
@@ -838,17 +848,17 @@
         var orig = parseFloat(data.origPrice.replace(/,/g, ''));
         if (!isNaN(cur) && !isNaN(orig) && orig > cur) {
           var pct = Math.round((orig - cur) / orig * 100);
-          priceLine += ' <span style="display:inline-block;background-color:#e87400;color:#ffffff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;vertical-align:middle;">SAVE ' + pct + '%</span>';
+          priceLine += ' <span style="display:inline-block;background-color:' + badgeColor + ';color:#ffffff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;vertical-align:middle;line-height:1.3;">SAVE ' + pct + '%</span>';
         }
       }
-      c += '<tr><td style="padding:0 16px 4px 16px;">' + priceLine + '</td></tr>';
+      c += '<tr><td style="padding:0 16px 12px 16px;">' + priceLine + '</td></tr>';
     }
     // CTA button
     c += '<tr><td align="center" style="padding:0 16px 16px 16px;">';
     if (data.tagged) {
-      c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background-color:#e87400;color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;text-decoration:none;mso-padding-alt:0;">' + esc(data.cta) + '</a>';
+      c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background-color:' + ctaColor + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;text-decoration:none;mso-padding-alt:0;">' + esc(data.cta) + '</a>';
     } else {
-      c += '<span style="display:inline-block;background-color:#e87400;color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(data.cta) + '</span>';
+      c += '<span style="display:inline-block;background-color:' + ctaColor + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(data.cta) + '</span>';
     }
     c += '</td></tr>';
     c += '</table>';
@@ -861,6 +871,7 @@
     var introText = document.getElementById('nlIntroText').value.trim();
     var tag = getTag(nlBrand, 'newsletter');
     var header = headerMap[nlBrand];
+    var colors = brandColors[nlBrand] || brandColors.htg;
     var pollHtml = document.getElementById('nlPollHtml').value.trim();
     var pollPosition = parseInt(document.getElementById('nlPollPosition').value) || 1;
     var bannerPosRaw = document.getElementById('nlBannerPosition').value.trim().toLowerCase();
@@ -878,7 +889,7 @@
 
     var sponsoredHtml = '';
     if (hasSponsored) {
-      sponsoredHtml += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:568px;margin:24px auto;border:1px solid #e5e5e7;border-radius:12px;border-collapse:separate;">\n';
+      sponsoredHtml += '<table cellpadding="0" cellspacing="0" border="0" width="568" style="width:568px;margin:24px auto;border:1px solid #e5e5e7;border-radius:12px;border-collapse:separate;">\n';
       if (spImg) {
         sponsoredHtml += '<tr><td align="center" style="padding:0;border:none;">';
         var spImgTag = '<img alt="' + esc(spHeadline || 'Sponsored') + '" src="' + esc(spImg) + '" width="100%" style="display:block;" />';
@@ -891,9 +902,9 @@
       if (spHeadline) sponsoredHtml += '<p style="font-size:18px;font-weight:700;color:#1d1d1f;margin:0 0 6px 0;">' + esc(spHeadline) + '</p>';
       if (spBody) sponsoredHtml += '<p style="font-size:14px;color:#666;font-style:italic;margin:0 0 14px 0;">' + esc(spBody) + '</p>';
       if (spCta && spLink) {
-        sponsoredHtml += '<a href="' + esc(spLink) + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background-color:#e87400;color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;text-decoration:none;mso-padding-alt:0;">' + esc(spCta) + '</a>';
+        sponsoredHtml += '<a href="' + esc(spLink) + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background-color:' + colors.cta + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;text-decoration:none;mso-padding-alt:0;">' + esc(spCta) + '</a>';
       } else if (spCta) {
-        sponsoredHtml += '<span style="display:inline-block;background-color:#e87400;color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(spCta) + '</span>';
+        sponsoredHtml += '<span style="display:inline-block;background-color:' + colors.cta + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(spCta) + '</span>';
       }
       sponsoredHtml += '</td></tr>\n</table>\n\n';
     }
@@ -970,10 +981,10 @@
       var right = (p + 1 < products.length && !sectionLabels[products[p + 1].defIndex]) ? products[p + 1] : null;
 
       html += '<table cellpadding="0" cellspacing="0" border="0" width="568" style="width:568px;margin:0 auto;table-layout:fixed;">\n<tr>\n';
-      html += buildProductCell(left);
+      html += buildProductCell(left, colors);
 
       if (right) {
-        html += '\n' + buildProductCell(right);
+        html += '\n' + buildProductCell(right, colors);
         p++; // skip next since we consumed it
       } else {
         html += '\n<td width="284" style="width:284px;"></td>';
