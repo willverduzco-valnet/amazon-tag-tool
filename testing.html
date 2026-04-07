@@ -810,10 +810,10 @@
     // Colgroup to lock column width
     c += '<colgroup><col width="' + innerW + '" /></colgroup>';
     // Image (fixed height, cropped to consistent aspect ratio)
-    var imgH = 180;
+    var imgH = 160;
     if (data.img) {
       c += '<tr><td width="' + innerW + '" height="' + imgH + '" align="center" style="padding:0;background-color:#f9f9fb;max-width:' + innerW + 'px;height:' + imgH + 'px;overflow:hidden;">';
-      var imgTag = '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" width="' + innerW + '" style="display:block;max-width:' + innerW + 'px;min-height:' + imgH + 'px;" />';
+      var imgTag = '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" width="' + innerW + '" style="display:block;max-width:' + innerW + 'px;" />';
       if (data.tagged) {
         c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank">' + imgTag + '</a>';
       } else {
