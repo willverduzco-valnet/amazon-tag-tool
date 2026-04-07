@@ -809,10 +809,11 @@
     c += '<table cellpadding="0" cellspacing="0" border="1" width="' + innerW + '" style="border-collapse:collapse;border-color:#e5e5e7;table-layout:fixed;width:' + innerW + 'px;max-width:' + innerW + 'px;">';
     // Colgroup to lock column width
     c += '<colgroup><col width="' + innerW + '" /></colgroup>';
-    // Image
+    // Image (fixed height, cropped to consistent aspect ratio)
+    var imgH = 180;
     if (data.img) {
-      c += '<tr><td width="' + innerW + '" align="center" style="padding:0;background-color:#f9f9fb;max-width:' + innerW + 'px;overflow:hidden;">';
-      var imgTag = '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" width="' + innerW + '" style="display:block;max-width:' + innerW + 'px;" />';
+      c += '<tr><td width="' + innerW + '" height="' + imgH + '" align="center" style="padding:0;background-color:#f9f9fb;max-width:' + innerW + 'px;height:' + imgH + 'px;overflow:hidden;">';
+      var imgTag = '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" width="' + innerW + '" style="display:block;max-width:' + innerW + 'px;min-height:' + imgH + 'px;" />';
       if (data.tagged) {
         c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank">' + imgTag + '</a>';
       } else {
