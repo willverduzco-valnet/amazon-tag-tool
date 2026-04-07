@@ -918,8 +918,8 @@
     // Banner HTML (built once, inserted at configured position)
     var bannerHtml = '';
     if (header) {
-      bannerHtml += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
-      bannerHtml += '<img alt="' + header.alt + '" height="318" src="' + header.img + '" width="568" />';
+      bannerHtml += '<div class="custom-anchor" style="max-width:552px;margin:0 auto;"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
+      bannerHtml += '<img alt="' + header.alt + '" src="' + header.img + '" width="552" style="display:block;max-width:552px;border-radius:12px;" />';
       bannerHtml += '</a></div>\n\n';
     }
     var bannerInserted = false;
