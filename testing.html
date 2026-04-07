@@ -906,7 +906,7 @@
 
     var sponsoredHtml = '';
     if (hasSponsored) {
-      sponsoredHtml += '<tr><td style="padding:8px;">\n';
+      sponsoredHtml += '<tr><td colspan="2" style="padding:8px;">\n';
       sponsoredHtml += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e5e5e7;border-radius:12px;border-collapse:separate;">\n';
       if (spImg) {
         sponsoredHtml += '<tr><td align="center" style="padding:0;border:none;">';
@@ -937,7 +937,7 @@
     // Banner HTML (built once, inserted at configured position)
     var bannerHtml = '';
     if (header) {
-      bannerHtml += '<tr><td style="padding:8px;">';
+      bannerHtml += '<tr><td colspan="2" style="padding:8px;">';
       bannerHtml += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
       bannerHtml += '<img alt="' + header.alt + '" src="' + header.img + '" width="100%" style="display:block;border-radius:12px;" />';
       bannerHtml += '</a></div>';
