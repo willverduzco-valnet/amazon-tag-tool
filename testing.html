@@ -816,14 +816,15 @@
     // Image (fixed height, cropped to consistent aspect ratio)
     var imgH = 160;
     if (data.img) {
-      c += '<tr><td width="' + innerW + '" height="' + imgH + '" align="center" style="padding:0;background-color:#f9f9fb;max-width:' + innerW + 'px;height:' + imgH + 'px;overflow:hidden;">';
+      c += '<tr><td width="' + innerW + '" align="center" style="padding:0;background-color:#f9f9fb;max-width:' + innerW + 'px;border:none;">';
+      c += '<div style="height:' + imgH + 'px;overflow:hidden;line-height:0;font-size:0;">';
       var imgTag = '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" width="' + innerW + '" style="display:block;max-width:' + innerW + 'px;" />';
       if (data.tagged) {
         c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank">' + imgTag + '</a>';
       } else {
         c += imgTag;
       }
-      c += '</td></tr>';
+      c += '</div></td></tr>';
     }
     // Title
     c += '<tr><td width="' + innerW + '" style="padding:16px 16px 8px 16px;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:600;line-height:1.3;color:#1d1d1f;border:none;max-width:' + innerW + 'px;overflow:hidden;word-wrap:break-word;">';
