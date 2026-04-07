@@ -186,7 +186,7 @@
         <label>Banner Position</label>
         <div style="display:flex;gap:8px;align-items:center;">
           <input type="text" id="nlBannerPosition" value="end" style="width:80px;text-align:center;">
-          <span style="font-size:13px;color:#888;">"end" or a number (e.g. 2 = after 2nd deal)</span>
+          <span style="font-size:13px;color:#888;">"end" or a row number (e.g. 2 = after 2nd row)</span>
         </div>
       </div>
     </div>
@@ -198,16 +198,55 @@
         <textarea id="nlPollHtml" rows="3" placeholder="Paste poll HTML from the Poll Link Generator..."></textarea>
       </div>
       <div class="field-row" style="margin-top:12px">
-        <label>Insert after deal #</label>
+        <label>Insert after row #</label>
         <div style="display:flex;gap:8px;align-items:center;">
           <input type="text" id="nlPollPosition" value="1" style="width:60px;text-align:center;">
-          <span style="font-size:13px;color:#888;">Default: after the 1st deal</span>
+          <span style="font-size:13px;color:#888;">Each row = 2 products (default: after row 1)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="sponsoredBlockCard">
+      <h2 class="section-title" style="margin-bottom:4px;">Sponsored Ad Block (optional)</h2>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Leave all fields empty to omit. Full-width banner between product rows.</p>
+      <div class="field-row">
+        <label>Banner Image URL</label>
+        <input type="text" id="nlSponsoredImg" placeholder="https://...">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Headline</label>
+        <input type="text" id="nlSponsoredHeadline" placeholder="e.g. Your Ad Here">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Body Text</label>
+        <input type="text" id="nlSponsoredBody" placeholder="e.g. Horizontal sponsor placement — full-width banner area for partner content.">
+      </div>
+      <div class="field-row-inline" style="margin-top:12px">
+        <div>
+          <label>CTA Text</label>
+          <input type="text" id="nlSponsoredCta" placeholder="e.g. LEARN MORE">
+        </div>
+        <div>
+          <label>CTA Link</label>
+          <input type="text" id="nlSponsoredLink" placeholder="https://...">
+        </div>
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Insert after row #</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="nlSponsoredPosition" value="3" style="width:60px;text-align:center;">
+          <span style="font-size:13px;color:#888;">Each row = 2 products (default: after row 3)</span>
         </div>
       </div>
     </div>
 
     <div id="productCards"></div>
 
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <button class="generate-btn" id="nlExportBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Export CSV</button>
+      <button class="generate-btn" id="nlImportBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Import CSV</button>
+      <input type="file" id="nlImportFile" accept=".csv" style="display:none;">
+    </div>
     <button class="generate-btn" id="generateBtn">Generate Newsletter HTML</button>
 
     <div class="nl-output" id="nlOutput" style="display:none">
@@ -822,6 +861,38 @@
     var bannerPosRaw = document.getElementById('nlBannerPosition').value.trim().toLowerCase();
     var bannerPosition = (bannerPosRaw === 'end' || bannerPosRaw === '') ? Infinity : (parseInt(bannerPosRaw) || Infinity);
 
+    // Sponsored ad block
+    var spImg = document.getElementById('nlSponsoredImg').value.trim();
+    var spHeadline = document.getElementById('nlSponsoredHeadline').value.trim();
+    var spBody = document.getElementById('nlSponsoredBody').value.trim();
+    var spCta = document.getElementById('nlSponsoredCta').value.trim();
+    var spLink = document.getElementById('nlSponsoredLink').value.trim();
+    var spPosition = parseInt(document.getElementById('nlSponsoredPosition').value) || 3;
+    var hasSponsored = !!(spImg || spHeadline || spBody);
+    var sponsoredInserted = false;
+
+    var sponsoredHtml = '';
+    if (hasSponsored) {
+      sponsoredHtml += '<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:568px;margin:24px auto;border:1px solid #e5e5e7;border-radius:12px;overflow:hidden;">\n';
+      if (spImg) {
+        sponsoredHtml += '<tr><td style="padding:0;text-align:center;">';
+        if (spLink) sponsoredHtml += '<a href="' + esc(spLink) + '" rel="noopener noreferrer" target="_blank">';
+        sponsoredHtml += '<img alt="' + esc(spHeadline || 'Sponsored') + '" src="' + esc(spImg) + '" style="width:100%;display:block;" />';
+        if (spLink) sponsoredHtml += '</a>';
+        sponsoredHtml += '</td></tr>\n';
+      }
+      sponsoredHtml += '<tr><td style="padding:20px;text-align:center;">';
+      sponsoredHtml += '<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin-bottom:6px;">SPONSORED</div>';
+      if (spHeadline) sponsoredHtml += '<div style="font-size:18px;font-weight:700;color:#1d1d1f;margin-bottom:6px;">' + esc(spHeadline) + '</div>';
+      if (spBody) sponsoredHtml += '<div style="font-size:14px;color:#666;font-style:italic;margin-bottom:14px;">' + esc(spBody) + '</div>';
+      if (spCta && spLink) {
+        sponsoredHtml += '<a href="' + esc(spLink) + '" rel="noopener noreferrer" target="_blank" style="display:inline-block;background:#e87400;color:#fff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;text-decoration:none;">' + esc(spCta) + '</a>';
+      } else if (spCta) {
+        sponsoredHtml += '<span style="display:inline-block;background:#e87400;color:#fff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(spCta) + '</span>';
+      }
+      sponsoredHtml += '</td></tr>\n</table>\n\n';
+    }
+
     var html = '';
 
     // Intro
@@ -865,8 +936,8 @@
         }
       }
 
-      // Skip completely empty products (except first)
-      if (i > 0 && !title && !url) return;
+      // Skip completely empty products
+      if (!title && !url) return;
 
       products.push({ title: title, url: url, cta: cta, img: img, desc: desc, price: price, origPrice: origPrice, tagged: tagged, defIndex: i });
     });
@@ -875,14 +946,14 @@
       0: "EDITOR'S TOP PICKS",
       2: "EDITOR'S PICK"
     };
-    var productCount = 0;
+    var rowCount = 0;
 
     // Render products in 2-column grid
     for (var p = 0; p < products.length; p++) {
       var prod = products[p];
 
       // Section label before certain slots
-      if (sectionLabels[prod.defIndex] && (prod.defIndex === 0 || productCount > 0)) {
+      if (sectionLabels[prod.defIndex] && (prod.defIndex === 0 || rowCount > 0)) {
         html += '<hr style="border:none;border-top:1px solid #e5e5e7;margin:24px 0;" />\n';
         html += '<h3 style="text-align:center;font-size:13px;font-weight:700;letter-spacing:2px;color:#888;margin:16px 0;">' + sectionLabels[prod.defIndex] + '</h3>\n\n';
       }
@@ -893,34 +964,40 @@
 
       html += '<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:568px;margin:0 auto;">\n<tr>\n';
       html += buildProductCell(left);
-      productCount++;
-
-      // Insert poll after this product?
-      var insertPollAfterRow = false;
-      if (pollHtml && productCount === pollPosition) insertPollAfterRow = true;
 
       if (right) {
         html += '\n' + buildProductCell(right);
         p++; // skip next since we consumed it
-        productCount++;
-        if (pollHtml && productCount === pollPosition) insertPollAfterRow = true;
       } else {
         html += '\n<td style="width:50%;"></td>';
       }
 
       html += '\n</tr>\n</table>\n\n';
+      rowCount++;
 
-      if (insertPollAfterRow && pollHtml) {
+      // Insert poll after configured row
+      if (pollHtml && rowCount === pollPosition) {
         var trimmedPoll = pollHtml.replace(/<hr[^>]*>\s*$/, '');
         html += '\n' + trimmedPoll + '\n\n';
         pollHtml = ''; // only insert once
       }
 
-      // Insert banner after configured deal count
-      if (header && !bannerInserted && productCount >= bannerPosition) {
+      // Insert sponsored ad after configured row
+      if (hasSponsored && !sponsoredInserted && rowCount >= spPosition) {
+        html += sponsoredHtml;
+        sponsoredInserted = true;
+      }
+
+      // Insert banner after configured row count
+      if (header && !bannerInserted && rowCount >= bannerPosition) {
         html += bannerHtml;
         bannerInserted = true;
       }
+    }
+
+    // Insert sponsored ad at end if not yet placed
+    if (hasSponsored && !sponsoredInserted) {
+      html += sponsoredHtml;
     }
 
     // Insert banner at end if not yet placed
@@ -929,7 +1006,7 @@
     }
 
     // Final separator
-    if (productCount > 0) {
+    if (rowCount > 0) {
       html += '<hr style="border:none;border-top:1px solid #e5e5e7;margin:24px 0;" />\n';
     }
 
@@ -979,6 +1056,157 @@
     d.textContent = s;
     return d.innerHTML;
   }
+
+  // =============================================
+  // Newsletter CSV Export / Import
+  // =============================================
+  function csvEscape(val) {
+    val = val || '';
+    if (val.indexOf('"') !== -1 || val.indexOf(',') !== -1 || val.indexOf('\n') !== -1) {
+      return '"' + val.replace(/"/g, '""') + '"';
+    }
+    return val;
+  }
+
+  function csvParseLine(line) {
+    var cols = [];
+    var cur = '';
+    var inQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { cur += ch; }
+      } else {
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === ',') { cols.push(cur); cur = ''; }
+        else { cur += ch; }
+      }
+    }
+    cols.push(cur);
+    return cols;
+  }
+
+  document.getElementById('nlExportBtn').addEventListener('click', function() {
+    var rows = [];
+    // Header row
+    rows.push(['field', 'slot', 'value'].map(csvEscape).join(','));
+
+    // Global fields
+    var globals = [
+      ['brand', '', nlBrand],
+      ['introTitle', '', document.getElementById('nlIntroTitle').value],
+      ['introText', '', document.getElementById('nlIntroText').value],
+      ['bannerPosition', '', document.getElementById('nlBannerPosition').value],
+      ['pollHtml', '', document.getElementById('nlPollHtml').value],
+      ['pollPosition', '', document.getElementById('nlPollPosition').value],
+      ['sponsoredImg', '', document.getElementById('nlSponsoredImg').value],
+      ['sponsoredHeadline', '', document.getElementById('nlSponsoredHeadline').value],
+      ['sponsoredBody', '', document.getElementById('nlSponsoredBody').value],
+      ['sponsoredCta', '', document.getElementById('nlSponsoredCta').value],
+      ['sponsoredLink', '', document.getElementById('nlSponsoredLink').value],
+      ['sponsoredPosition', '', document.getElementById('nlSponsoredPosition').value]
+    ];
+    globals.forEach(function(g) { rows.push(g.map(csvEscape).join(',')); });
+
+    // Product cards
+    var cards = container.querySelectorAll('.product-card');
+    cards.forEach(function(card, i) {
+      var fields = [
+        ['title', String(i + 1), card.querySelector('.nl-title').value],
+        ['url', String(i + 1), card.querySelector('.nl-url').value],
+        ['img', String(i + 1), card.querySelector('.nl-img').value],
+        ['price', String(i + 1), card.querySelector('.nl-price').value],
+        ['origPrice', String(i + 1), card.querySelector('.nl-orig-price').value],
+        ['cta', String(i + 1), card.querySelector('.nl-cta').value],
+        ['skipAffiliate', String(i + 1), card.querySelector('.nl-skip-affiliate').checked ? '1' : '0'],
+        ['desc', String(i + 1), card.querySelector('.nl-desc').value]
+      ];
+      fields.forEach(function(f) { rows.push(f.map(csvEscape).join(',')); });
+    });
+
+    var csv = rows.join('\n');
+    var blob = new Blob([csv], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    var date = new Date().toISOString().slice(0, 10);
+    a.download = 'newsletter-' + nlBrand + '-' + date + '.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById('nlImportBtn').addEventListener('click', function() {
+    document.getElementById('nlImportFile').click();
+  });
+
+  document.getElementById('nlImportFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var lines = ev.target.result.split('\n');
+      // Skip header row
+      var start = (lines[0] && lines[0].indexOf('field') === 0) ? 1 : 0;
+
+      var cards = container.querySelectorAll('.product-card');
+      var cardFieldMap = {
+        title: '.nl-title', url: '.nl-url', img: '.nl-img',
+        price: '.nl-price', origPrice: '.nl-orig-price', cta: '.nl-cta',
+        desc: '.nl-desc'
+      };
+
+      // Clear all product cards first
+      cards.forEach(function(card) {
+        Object.keys(cardFieldMap).forEach(function(k) {
+          card.querySelector(cardFieldMap[k]).value = '';
+        });
+        card.querySelector('.nl-skip-affiliate').checked = false;
+      });
+
+      for (var i = start; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        var cols = csvParseLine(lines[i]);
+        var field = cols[0];
+        var slot = cols[1];
+        var val = cols[2] || '';
+
+        // Global fields
+        if (!slot) {
+          if (field === 'brand') {
+            nlBrand = val;
+            var brandBtns = document.getElementById('nlBrandGroup').querySelectorAll('button');
+            brandBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === val); });
+          }
+          else if (field === 'introTitle') document.getElementById('nlIntroTitle').value = val;
+          else if (field === 'introText') document.getElementById('nlIntroText').value = val;
+          else if (field === 'bannerPosition') document.getElementById('nlBannerPosition').value = val;
+          else if (field === 'pollHtml') document.getElementById('nlPollHtml').value = val;
+          else if (field === 'pollPosition') document.getElementById('nlPollPosition').value = val;
+          else if (field === 'sponsoredImg') document.getElementById('nlSponsoredImg').value = val;
+          else if (field === 'sponsoredHeadline') document.getElementById('nlSponsoredHeadline').value = val;
+          else if (field === 'sponsoredBody') document.getElementById('nlSponsoredBody').value = val;
+          else if (field === 'sponsoredCta') document.getElementById('nlSponsoredCta').value = val;
+          else if (field === 'sponsoredLink') document.getElementById('nlSponsoredLink').value = val;
+          else if (field === 'sponsoredPosition') document.getElementById('nlSponsoredPosition').value = val;
+        }
+        // Product card fields
+        else {
+          var idx = parseInt(slot) - 1;
+          if (idx < 0 || idx >= cards.length) continue;
+          var card = cards[idx];
+          if (field === 'skipAffiliate') {
+            card.querySelector('.nl-skip-affiliate').checked = val === '1';
+          } else if (cardFieldMap[field]) {
+            card.querySelector(cardFieldMap[field]).value = val;
+          }
+        }
+      }
+    };
+    reader.readAsText(file);
+    // Reset so the same file can be re-imported
+    e.target.value = '';
+  });
 </script>
 </body>
 </html>
