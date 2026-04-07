@@ -161,6 +161,12 @@
     <div class="card">
       <h2 class="section-title">Deals Newsletter Builder</h2>
 
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="generate-btn" id="nlExportBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Export CSV</button>
+        <button class="generate-btn" id="nlImportBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Import CSV</button>
+        <input type="file" id="nlImportFile" accept=".csv" style="display:none;">
+      </div>
+
       <div class="selectors" style="margin-top:0">
         <div class="selector-group">
           <label>Brand</label>
@@ -242,11 +248,6 @@
 
     <div id="productCards"></div>
 
-    <div style="display:flex;gap:8px;margin-bottom:8px;">
-      <button class="generate-btn" id="nlExportBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Export CSV</button>
-      <button class="generate-btn" id="nlImportBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Import CSV</button>
-      <input type="file" id="nlImportFile" accept=".csv" style="display:none;">
-    </div>
     <button class="generate-btn" id="generateBtn">Generate Newsletter HTML</button>
 
     <div class="nl-output" id="nlOutput" style="display:none">
@@ -782,7 +783,7 @@
         '<div><label>CTA Text</label><input type="text" class="nl-cta" placeholder="e.g. GET DEAL" value="GET DEAL"></div>' +
       '</div>' +
       '<div class="field-row" style="display:flex;align-items:center;gap:12px;">' +
-        '<label class="cleaner-option" style="margin:0;"><input type="checkbox" class="nl-skip-affiliate"> Skip affiliate tag</label>' +
+        '<label class="cleaner-option" style="margin:0;"><input type="checkbox" class="nl-skip-affiliate"> Bypass link processing</label>' +
       '</div>' +
       '<div class="field-row"><label>Description</label><textarea class="nl-desc" rows="2" placeholder="Short product description..."></textarea></div>';
     container.appendChild(card);
@@ -925,14 +926,16 @@
       var desc = card.querySelector('.nl-desc').value.trim();
       var price = card.querySelector('.nl-price').value.trim();
       var origPrice = card.querySelector('.nl-orig-price').value.trim();
-      var skipAffiliate = card.querySelector('.nl-skip-affiliate').checked;
+      var bypass = card.querySelector('.nl-skip-affiliate').checked;
       var tagged = null;
       if (url) {
-        var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
-        if (asinMatch) {
-          tagged = skipAffiliate
-            ? 'https://amazon.com/dp/' + asinMatch[1]
-            : 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag;
+        if (bypass) {
+          tagged = url;
+        } else {
+          var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+          if (asinMatch) {
+            tagged = 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag;
+          }
         }
       }
 
