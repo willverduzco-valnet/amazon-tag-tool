@@ -843,14 +843,6 @@
       }
       c += '<tr><td style="padding:0 16px 4px 16px;">' + priceLine + '</td></tr>';
     }
-    // Free shipping note
-    if (data.price && data.origPrice) {
-      var cur2 = parseFloat(data.price.replace(/,/g, ''));
-      var orig2 = parseFloat(data.origPrice.replace(/,/g, ''));
-      if (!isNaN(cur2) && !isNaN(orig2) && orig2 > cur2) {
-        c += '<tr><td style="padding:0 16px 12px 16px;font-size:12px;color:#e87400;">+ free shipping</td></tr>';
-      }
-    }
     // CTA button
     c += '<tr><td align="center" style="padding:0 16px 16px 16px;">';
     if (data.tagged) {
