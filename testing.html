@@ -182,6 +182,10 @@
       </div>
 
       <div class="field-row">
+        <label>Urgency Banner (optional)</label>
+        <input type="text" id="nlUrgencyBanner" placeholder="e.g. FLASH DEALS — These prices expire in 24 hours!">
+      </div>
+      <div class="field-row" style="margin-top:12px">
         <label>Intro Title</label>
         <input type="text" id="nlIntroTitle" placeholder="e.g. Today's Best Deals">
       </div>
@@ -877,6 +881,7 @@
   }
 
   document.getElementById('generateBtn').addEventListener('click', function() {
+    var urgencyText = document.getElementById('nlUrgencyBanner').value.trim();
     var introTitle = document.getElementById('nlIntroTitle').value.trim();
     var introText = document.getElementById('nlIntroText').value.trim();
     var tag = getTag(nlBrand, 'newsletter');
@@ -923,9 +928,17 @@
 
     var html = '';
 
+    // Urgency banner
+    if (urgencyText) {
+      html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;"><tr>';
+      html += '<td align="center" bgcolor="#e87400" style="background-color:#e87400;padding:12px 16px;border-radius:8px;">';
+      html += '<span style="color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;">' + esc(urgencyText) + '</span>';
+      html += '</td></tr></table>\n\n';
+    }
+
     // Intro
-    html += '<h3>' + esc(introTitle || '[INTRO TITLE]') + '</h3>\n';
-    html += (introText ? esc(introText) : '[PASTE INTRO HERE]') + '&nbsp;\n\n';
+    if (introTitle) html += '<h3>' + esc(introTitle) + '</h3>\n';
+    if (introText) html += esc(introText) + '&nbsp;\n\n';
 
     // Banner HTML (built once, inserted at configured position)
     var bannerHtml = '';
@@ -1147,6 +1160,7 @@
     // Global fields
     var globals = [
       ['brand', '', nlBrand],
+      ['urgencyBanner', '', document.getElementById('nlUrgencyBanner').value],
       ['introTitle', '', document.getElementById('nlIntroTitle').value],
       ['introText', '', document.getElementById('nlIntroText').value],
       ['bannerPosition', '', document.getElementById('nlBannerPosition').value],
@@ -1227,6 +1241,7 @@
             var brandBtns = document.getElementById('nlBrandGroup').querySelectorAll('button');
             brandBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === val); });
           }
+          else if (field === 'urgencyBanner') document.getElementById('nlUrgencyBanner').value = val;
           else if (field === 'introTitle') document.getElementById('nlIntroTitle').value = val;
           else if (field === 'introText') document.getElementById('nlIntroText').value = val;
           else if (field === 'bannerPosition') document.getElementById('nlBannerPosition').value = val;
