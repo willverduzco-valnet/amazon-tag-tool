@@ -862,10 +862,10 @@
         var orig = parseFloat(data.origPrice.replace(/,/g, ''));
         if (!isNaN(cur) && !isNaN(orig) && orig > cur) {
           var pct = Math.round((orig - cur) / orig * 100);
-          priceLine += '<span style="display:inline-block;background-color:' + badgeColor + ';color:#ffffff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;vertical-align:baseline;line-height:1;">SAVE ' + pct + '%</span>';
+          priceLine += '<span class="nl-save-badge" style="display:inline-block;background-color:' + badgeColor + ';color:#ffffff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;vertical-align:baseline;line-height:1;">SAVE ' + pct + '%</span>';
         }
       }
-      c += '<tr><td style="padding:0 16px 12px 16px;mso-line-height-rule:exactly;">' + priceLine + '</td></tr>';
+      c += '<tr><td class="nl-price-row" style="padding:0 16px 12px 16px;mso-line-height-rule:exactly;">' + priceLine + '</td></tr>';
     }
     // CTA button (with VML fallback for Outlook)
     c += '<tr><td align="center" style="padding:0 16px 16px 16px;mso-line-height-rule:exactly;">';
@@ -927,6 +927,12 @@
     }
 
     var html = '';
+
+    // Style block for Outlook fixes (Gmail strips it, Outlook keeps it)
+    html += '<style>\n';
+    html += '  .nl-price-row span { margin-right:8px !important; }\n';
+    html += '  .nl-save-badge { font-size:10px !important; padding:2px 6px !important; line-height:1 !important; vertical-align:baseline !important; }\n';
+    html += '</style>\n';
 
     // Urgency banner
     if (urgencyText) {
