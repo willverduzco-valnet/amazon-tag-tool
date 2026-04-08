@@ -840,8 +840,8 @@
     // Image (fixed height, cropped to consistent aspect ratio)
     var imgH = 160;
     if (data.img) {
-      c += '<tr><td width="' + innerW + '" align="center" style="padding:0;background-color:#f9f9fb;max-width:' + innerW + 'px;">';
-      c += '<div style="height:' + imgH + 'px;overflow:hidden;line-height:0;font-size:0;border-radius:12px 12px 0 0;">';
+      c += '<tr><td width="' + innerW + '" align="center" style="padding:0;max-width:' + innerW + 'px;">';
+      c += '<div style="max-height:' + imgH + 'px;overflow:hidden;line-height:0;font-size:0;border-radius:12px 12px 0 0;">';
       var imgTag = '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" width="' + innerW + '" style="display:block;max-width:' + innerW + 'px;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:12px;color:#666;" />';
       if (data.tagged) {
         c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank">' + imgTag + '</a>';
