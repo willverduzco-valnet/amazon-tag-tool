@@ -82,6 +82,7 @@
     <button class="active" data-tab="tagger">Amazon URL Tagger</button>
     <button data-tab="cleaner">URL Cleaner</button>
     <button data-tab="newsletter">Deals Newsletter Builder</button>
+    <button data-tab="dealblock">Deal Block</button>
   </div>
 
   <!-- TAB 1: Amazon URL Tagger -->
@@ -152,6 +153,79 @@
           <li>The URL is stripped down to just the ASIN (product ID). All tracking parameters, referral codes, and slug text from the original link are removed.</li>
           <li>AP uses a non-standard newsletter tag (<code style="font-size:12px;background:#e5e5e7;padding:1px 5px;border-radius:4px;">ap-newsletter04-20</code>). All other brand/purpose combinations follow the standard naming pattern.</li>
         </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: Deal Block -->
+  <div class="tab-content" id="tab-dealblock">
+    <div class="card">
+      <h2 class="section-title">Deal Block Generator</h2>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Generates a single 2-column deal row for injection into editorial newsletter sends.</p>
+
+      <div class="selectors" style="margin-top:0">
+        <div class="selector-group">
+          <label>Brand</label>
+          <div class="btn-group" id="dbBrandGroup">
+            <button data-val="htg" class="active">HTG</button>
+            <button data-val="xda">XDA</button>
+            <button data-val="muo">MUO</button>
+            <button data-val="ap">AP</button>
+            <button data-val="pl">PL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card product-card deal-of-day" id="dbCard1">
+      <span class="product-num">Product 1 (Left)</span>
+      <div class="field-row"><label>Product Title</label><input type="text" class="db-title" placeholder="e.g. Sony WH-1000XM5"></div>
+      <div class="field-row-inline">
+        <div><label>URL</label><input type="text" class="db-url" placeholder="amazon.com/dp/..."></div>
+        <div><label>Image URL</label><input type="text" class="db-img" placeholder="https://..."></div>
+      </div>
+      <div class="field-row-inline">
+        <div><label>Current Price</label><input type="text" class="db-price" placeholder="e.g. 240"></div>
+        <div><label>Original Price</label><input type="text" class="db-orig-price" placeholder="e.g. 300"></div>
+        <div><label>CTA Text</label><input type="text" class="db-cta" placeholder="e.g. GET DEAL" value="GET DEAL"></div>
+      </div>
+      <div class="field-row" style="display:flex;align-items:center;gap:12px;">
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" class="db-bypass"> Bypass link processing</label>
+      </div>
+    </div>
+
+    <div class="card product-card" id="dbCard2">
+      <span class="product-num">Product 2 (Right)</span>
+      <div class="field-row"><label>Product Title</label><input type="text" class="db-title" placeholder="e.g. Anker Nano 100W"></div>
+      <div class="field-row-inline">
+        <div><label>URL</label><input type="text" class="db-url" placeholder="amazon.com/dp/..."></div>
+        <div><label>Image URL</label><input type="text" class="db-img" placeholder="https://..."></div>
+      </div>
+      <div class="field-row-inline">
+        <div><label>Current Price</label><input type="text" class="db-price" placeholder="e.g. 240"></div>
+        <div><label>Original Price</label><input type="text" class="db-orig-price" placeholder="e.g. 300"></div>
+        <div><label>CTA Text</label><input type="text" class="db-cta" placeholder="e.g. GET DEAL" value="GET DEAL"></div>
+      </div>
+      <div class="field-row" style="display:flex;align-items:center;gap:12px;">
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" class="db-bypass"> Bypass link processing</label>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="dbGenerateBtn">Generate Deal Block HTML</button>
+
+    <div id="dbOutput" style="display:none">
+      <div class="card">
+        <div class="btn-group" id="dbOutputToggle" style="margin-bottom:16px">
+          <button data-val="code" class="active">HTML Code</button>
+          <button data-val="preview">Preview</button>
+        </div>
+        <div id="dbOutputCode">
+          <textarea id="dbOutputCodeArea" readonly style="min-height:200px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:#f9f9fb;"></textarea>
+        </div>
+        <div id="dbOutputPreview" style="display:none">
+          <iframe id="dbPreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:400px;background:#fff;"></iframe>
+        </div>
+        <button class="copy-btn" id="dbCopyBtn" style="margin-top:12px">Copy HTML</button>
       </div>
     </div>
   </div>
@@ -1276,6 +1350,88 @@
     reader.readAsText(file);
     // Reset so the same file can be re-imported
     e.target.value = '';
+  });
+
+  // =============================================
+  // Deal Block Generator
+  // =============================================
+  var dbBrand = 'htg';
+  initToggle('dbBrandGroup', function(v) { dbBrand = v; });
+
+  document.getElementById('dbGenerateBtn').addEventListener('click', function() {
+    var tag = getTag(dbBrand, 'newsletter');
+    var colors = brandColors[dbBrand] || brandColors.htg;
+    var cards = [document.getElementById('dbCard1'), document.getElementById('dbCard2')];
+    var products = [];
+
+    cards.forEach(function(card) {
+      var title = card.querySelector('.db-title').value.trim();
+      var url = card.querySelector('.db-url').value.trim();
+      var img = card.querySelector('.db-img').value.trim();
+      var price = card.querySelector('.db-price').value.trim();
+      var origPrice = card.querySelector('.db-orig-price').value.trim();
+      var cta = card.querySelector('.db-cta').value.trim() || 'GET DEAL';
+      var bypass = card.querySelector('.db-bypass').checked;
+      var tagged = null;
+      if (url) {
+        if (bypass) {
+          tagged = url;
+        } else {
+          var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+          if (asinMatch) {
+            tagged = 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag;
+          }
+        }
+      }
+      if (title || url) {
+        products.push({ title: title, url: url, cta: cta, img: img, price: price, origPrice: origPrice, tagged: tagged });
+      }
+    });
+
+    if (products.length === 0) return;
+
+    var html = '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:0 auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;">\n<tr>\n';
+    html += buildProductCell(products[0], colors);
+    if (products.length > 1) {
+      html += '\n' + buildProductCell(products[1], colors);
+    } else {
+      html += '\n<td width="284" style="width:284px;"></td>';
+    }
+    html += '\n</tr>\n</table>';
+
+    document.getElementById('dbOutputCodeArea').value = html;
+    document.getElementById('dbOutput').style.display = 'block';
+
+    // Preview
+    var frame = document.getElementById('dbPreviewFrame');
+    var previewHtml = '<!DOCTYPE html><html><head><style>'
+      + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:24px;max-width:600px;color:#1d1d1f;line-height:1.5;}'
+      + 'img{max-width:100%;height:auto;}'
+      + 'table{border-spacing:0;border-collapse:separate;}'
+      + '</style></head><body>' + html + '</body></html>';
+    frame.srcdoc = previewHtml;
+    frame.onload = function() {
+      try { frame.style.height = frame.contentDocument.body.scrollHeight + 40 + 'px'; } catch(e) {}
+    };
+  });
+
+  // Deal block output toggle
+  document.getElementById('dbOutputToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    var isPreview = e.target.dataset.val === 'preview';
+    document.getElementById('dbOutputPreview').style.display = isPreview ? 'block' : 'none';
+    document.getElementById('dbOutputCode').style.display = isPreview ? 'none' : 'block';
+  });
+
+  document.getElementById('dbCopyBtn').addEventListener('click', function() {
+    var btn = this;
+    navigator.clipboard.writeText(document.getElementById('dbOutputCodeArea').value).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
+    });
   });
 </script>
 </body>
