@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon Tag Tool</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; padding: 40px 20px; }
+  .page { max-width: 700px; margin: 0 auto; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.08); padding: 32px; margin-bottom: 24px; }
+  h1 { font-size: 22px; margin-bottom: 24px; }
+  h2.section-title { font-size: 18px; margin-bottom: 20px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #555; text-transform: uppercase; letter-spacing: .5px; }
+  input[type="text"], textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #d2d2d7; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; transition: border-color .15s; }
+  input[type="text"]:focus, textarea:focus { border-color: #0071e3; }
+  textarea { resize: vertical; min-height: 60px; }
+  .selectors { display: flex; gap: 16px; margin: 20px 0; }
+  .selector-group { flex: 1; }
+  .btn-group { display: flex; gap: 0; border-radius: 10px; overflow: hidden; border: 1.5px solid #d2d2d7; }
+  .btn-group button { flex: 1; padding: 10px 0; font-size: 13px; font-weight: 600; border: none; background: #fff; cursor: pointer; transition: all .15s; }
+  .btn-group button.active { background: #0071e3; color: #fff; }
+  .btn-group button:not(.active):hover { background: #f0f0f0; }
+  .result-box { margin-top: 24px; display: none; }
+  .result-box.visible { display: block; }
+  .result-url { width: 100%; padding: 12px 14px; border: 1.5px solid #34c759; border-radius: 10px; font-size: 14px; background: #f0faf3; font-family: 'SF Mono', 'Fira Code', monospace; word-break: break-all; line-height: 1.5; }
+  .tag-badge { display: inline-block; background: #0071e3; color: #fff; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px; margin-bottom: 8px; font-family: monospace; }
+  .copy-btn { margin-top: 12px; width: 100%; padding: 12px; border: none; border-radius: 10px; background: #0071e3; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .15s; }
+  .copy-btn:hover { background: #005bb5; }
+  .copy-btn.copied { background: #34c759; }
+  .error { color: #ff3b30; font-size: 13px; margin-top: 8px; display: none; }
+  .error.visible { display: block; }
+
+  /* Newsletter builder */
+  .tabs { display: flex; gap: 0; border-radius: 12px; overflow: hidden; border: 1.5px solid #d2d2d7; margin-bottom: 24px; }
+  .tabs button { flex: 1; padding: 12px 0; font-size: 15px; font-weight: 600; border: none; background: #fff; cursor: pointer; transition: all .15s; }
+  .tabs button.active { background: #1d1d1f; color: #fff; }
+  .tabs button:not(.active):hover { background: #f0f0f0; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .product-card { border: 1.5px solid #e5e5e7; border-radius: 12px; padding: 20px; margin-bottom: 16px; position: relative; }
+  .product-card .product-num { position: absolute; top: -10px; left: 16px; background: #1d1d1f; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 6px; }
+  .product-card.deal-of-day { border-color: #ff9500; }
+  .product-card.deal-of-day .product-num { background: #ff9500; }
+  .product-card.editors-pick { border-color: #af52de; }
+  .product-card.editors-pick .product-num { background: #af52de; }
+  .field-row { margin-bottom: 12px; }
+  .field-row:last-child { margin-bottom: 0; }
+  .field-row-inline { display: flex; gap: 12px; margin-bottom: 12px; }
+  .field-row-inline > div { flex: 1; }
+
+  .nl-output { margin-top: 24px; }
+  .nl-output textarea { min-height: 300px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; background: #f9f9fb; }
+  .generate-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #1d1d1f; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .15s; margin-top: 8px; }
+  .generate-btn:hover { background: #333; }
+
+  /* Mode toggle (single / bulk) */
+  .mode-toggle { display: flex; gap: 0; border-radius: 8px; overflow: hidden; border: 1.5px solid #d2d2d7; margin-bottom: 20px; max-width: 220px; }
+  .mode-toggle button { flex: 1; padding: 7px 0; font-size: 12px; font-weight: 600; border: none; background: #fff; cursor: pointer; transition: all .15s; text-transform: uppercase; letter-spacing: .3px; }
+  .mode-toggle button.active { background: #1d1d1f; color: #fff; }
+  .mode-toggle button:not(.active):hover { background: #f0f0f0; }
+
+  /* Bulk textareas */
+  .bulk-area { width: 100%; min-height: 160px; resize: vertical; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.6; }
+  .bulk-output { background: #f0faf3; border-color: #34c759; }
+  .bulk-count { font-size: 12px; color: #888; margin-top: 6px; }
+
+  /* Cleaner options */
+  .cleaner-options { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
+  .cleaner-option { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .cleaner-option input[type="checkbox"] { width: 16px; height: 16px; accent-color: #0071e3; cursor: pointer; }
+  .affiliate-options { margin-top: 16px; padding: 16px; background: #f9f9fb; border-radius: 10px; border: 1.5px solid #e5e5e7; }
+  .affiliate-options.hidden { display: none; }
+  .info-note { font-size: 13px; color: #ff9500; margin-top: 12px; font-weight: 600; text-align: center; padding: 8px 12px; background: #fff8ef; border: 1.5px solid #ff9500; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="tabs">
+    <button class="active" data-tab="tagger">Amazon Tagger</button>
+    <button data-tab="cleaner">URL Cleaner</button>
+    <button data-tab="newsletter">Deals NL Builder</button>
+    <button data-tab="dealblock">Deal Block</button>
+  </div>
+
+  <!-- TAB 1: Amazon URL Tagger -->
+  <div class="tab-content active" id="tab-tagger">
+    <div class="card">
+      <h1>Amazon Tag Tool</h1>
+
+      <div class="mode-toggle" id="amzModeToggle">
+        <button class="active" data-val="single">Single</button>
+        <button data-val="bulk">Bulk</button>
+      </div>
+
+      <!-- Single mode -->
+      <div id="amzSingleMode">
+        <label>Amazon URL</label>
+        <input type="text" id="urlInput" placeholder="Paste an Amazon link here..." autofocus>
+        <div class="error" id="error"></div>
+      </div>
+
+      <!-- Bulk mode -->
+      <div id="amzBulkMode" style="display:none">
+        <label>Amazon URLs (one per line)</label>
+        <textarea class="bulk-area" id="amzBulkInput" placeholder="Paste multiple Amazon URLs here, one per line..."></textarea>
+        <div class="error" id="amzBulkError"></div>
+      </div>
+
+      <div class="selectors">
+        <div class="selector-group">
+          <label>Site</label>
+          <div class="btn-group" id="siteGroup">
+            <button data-val="htg" class="active">HTG</button>
+            <button data-val="xda">XDA</button>
+            <button data-val="muo">MUO</button>
+            <button data-val="ap">AP</button>
+            <button data-val="pl">PL</button>
+          </div>
+        </div>
+        <div class="selector-group">
+          <label>Purpose</label>
+          <div class="btn-group" id="purposeGroup">
+            <button data-val="tcp" class="active">TCP</button>
+            <button data-val="newsletter">Newsletter</button>
+            <button data-val="fb">FB</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Single result -->
+      <div class="result-box" id="resultBox">
+        <span class="tag-badge" id="tagBadge"></span>
+        <div class="result-url" id="resultUrl"></div>
+        <button class="copy-btn" id="copyBtn">Copy to Clipboard</button>
+      </div>
+
+      <!-- Bulk result -->
+      <div class="result-box" id="amzBulkResultBox">
+        <label>Tagged URLs</label>
+        <textarea class="bulk-area bulk-output" id="amzBulkOutput" readonly></textarea>
+        <div class="bulk-count" id="amzBulkCount"></div>
+        <button class="copy-btn" id="amzBulkCopyBtn">Copy All to Clipboard</button>
+      </div>
+
+      <div style="margin-top:24px;padding:16px;background:#f9f9fb;border-radius:10px;font-size:13px;color:#666;line-height:1.6;">
+        <strong style="color:#1d1d1f;">Notes</strong>
+        <ul style="margin:8px 0 0 16px;padding:0;">
+          <li>This tool is intended for use with any Amazon.com (US) URL. It intentionally does not work with Amazon.ca or any other regional Amazon store to prevent region-locked deals issues.</li>
+          <li>The Deals Newsletter Builder tab automatically affiliates all Amazon URLs. There is no need to use this tab when building a newsletter.</li>
+          <li>The URL is stripped down to just the ASIN (product ID). All tracking parameters, referral codes, and slug text from the original link are removed.</li>
+          <li>AP uses a non-standard newsletter tag (<code style="font-size:12px;background:#e5e5e7;padding:1px 5px;border-radius:4px;">ap-newsletter04-20</code>). All other brand/purpose combinations follow the standard naming pattern.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: Deal Block -->
+  <div class="tab-content" id="tab-dealblock">
+    <div class="card">
+      <h2 class="section-title">Deal Block Generator</h2>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Generates a single 2-column deal row for injection into editorial newsletter sends.</p>
+
+      <div class="selectors" style="margin-top:0">
+        <div class="selector-group">
+          <label>Brand</label>
+          <div class="btn-group" id="dbBrandGroup">
+            <button data-val="htg" class="active">HTG</button>
+            <button data-val="xda">XDA</button>
+            <button data-val="muo">MUO</button>
+            <button data-val="ap">AP</button>
+            <button data-val="pl">PL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card product-card deal-of-day" id="dbCard1">
+      <span class="product-num">Product 1 (Left)</span>
+      <div class="field-row"><label>Product Title</label><input type="text" class="db-title" placeholder="e.g. Sony WH-1000XM5"></div>
+      <div class="field-row-inline">
+        <div><label>URL</label><input type="text" class="db-url" placeholder="amazon.com/dp/..."></div>
+        <div><label>Image URL</label><input type="text" class="db-img" placeholder="https://..."></div>
+      </div>
+      <div class="field-row-inline">
+        <div><label>Current Price</label><input type="text" class="db-price" placeholder="e.g. 240"></div>
+        <div><label>Original Price</label><input type="text" class="db-orig-price" placeholder="e.g. 300"></div>
+        <div><label>CTA Text</label><input type="text" class="db-cta" placeholder="e.g. GET DEAL" value="GET DEAL"></div>
+      </div>
+      <div class="field-row" style="display:flex;align-items:center;gap:12px;">
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" class="db-bypass"> Bypass link processing</label>
+      </div>
+    </div>
+
+    <div class="card product-card" id="dbCard2">
+      <span class="product-num">Product 2 (Right)</span>
+      <div class="field-row"><label>Product Title</label><input type="text" class="db-title" placeholder="e.g. Anker Nano 100W"></div>
+      <div class="field-row-inline">
+        <div><label>URL</label><input type="text" class="db-url" placeholder="amazon.com/dp/..."></div>
+        <div><label>Image URL</label><input type="text" class="db-img" placeholder="https://..."></div>
+      </div>
+      <div class="field-row-inline">
+        <div><label>Current Price</label><input type="text" class="db-price" placeholder="e.g. 240"></div>
+        <div><label>Original Price</label><input type="text" class="db-orig-price" placeholder="e.g. 300"></div>
+        <div><label>CTA Text</label><input type="text" class="db-cta" placeholder="e.g. GET DEAL" value="GET DEAL"></div>
+      </div>
+      <div class="field-row" style="display:flex;align-items:center;gap:12px;">
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" class="db-bypass"> Bypass link processing</label>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="dbGenerateBtn">Generate Deal Block HTML</button>
+
+    <div id="dbOutput" style="display:none">
+      <div class="card">
+        <div class="btn-group" id="dbOutputToggle" style="margin-bottom:16px">
+          <button data-val="code" class="active">HTML Code</button>
+          <button data-val="preview">Preview</button>
+        </div>
+        <div id="dbOutputCode">
+          <textarea id="dbOutputCodeArea" readonly style="min-height:200px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:#f9f9fb;"></textarea>
+        </div>
+        <div id="dbOutputPreview" style="display:none">
+          <iframe id="dbPreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:400px;background:#fff;"></iframe>
+        </div>
+        <button class="copy-btn" id="dbCopyBtn" style="margin-top:12px">Copy HTML</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Deals Newsletter Builder -->
+  <div class="tab-content" id="tab-newsletter">
+    <div class="card">
+      <h2 class="section-title">Deals Newsletter Builder</h2>
+      <div class="info-note" style="margin-bottom:16px;text-align:left;"><ul style="margin:0;padding:0 0 0 16px;"><li>When sending via Emaki, select "Custom" layout. "Regular" overrides the tables.</li><li>If product boxes have uneven heights, the image is too short. Use taller/squarer product images.</li><li>Images are cropped to 150px height. Wide landscape images may not fill the frame.</li></ul></div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="generate-btn" id="nlExportBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Export CSV</button>
+        <button class="generate-btn" id="nlImportBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Import CSV</button>
+        <input type="file" id="nlImportFile" accept=".csv" style="display:none;">
+      </div>
+
+      <div class="selectors" style="margin-top:0">
+        <div class="selector-group">
+          <label>Brand</label>
+          <div class="btn-group" id="nlBrandGroup">
+            <button data-val="htg" class="active">HTG</button>
+            <button data-val="xda">XDA</button>
+            <button data-val="muo">MUO</button>
+            <button data-val="ap">AP</button>
+            <button data-val="pl">PL</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label>Urgency Banner (optional)</label>
+        <input type="text" id="nlUrgencyBanner" placeholder="e.g. FLASH DEALS — These prices expire in 24 hours!">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Intro Title</label>
+        <input type="text" id="nlIntroTitle" placeholder="e.g. Today's Best Deals">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Intro Text</label>
+        <textarea id="nlIntroText" rows="3" placeholder="Write your intro paragraph here..."></textarea>
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Banner Position</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="nlBannerPosition" value="end" style="width:80px;text-align:center;">
+          <span style="font-size:13px;color:#888;">"end" or a row number (e.g. 2 = after 2nd row)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="pollBlockCard">
+      <h2 class="section-title" style="margin-bottom:12px;">Poll Block (optional)</h2>
+      <div class="field-row">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <label style="margin-bottom:0;">Poll HTML</label>
+          <button class="generate-btn" id="nlPollImportBtn" style="background:#555;font-size:11px;padding:4px 10px;margin:0;width:auto;">Import .txt</button>
+          <input type="file" id="nlPollImportFile" accept=".txt,.html" style="display:none;">
+        </div>
+        <textarea id="nlPollHtml" rows="3" placeholder="Paste poll HTML from the Poll Link Generator..." style="margin-top:6px;"></textarea>
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Insert after row #</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="nlPollPosition" value="1" style="width:60px;text-align:center;">
+          <span style="font-size:13px;color:#888;">Each row = 2 products (default: after row 1)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="sponsoredBlockCard">
+      <h2 class="section-title" style="margin-bottom:4px;">Sponsored Ad Block (optional)</h2>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Leave all fields empty to omit. Full-width banner between product rows.</p>
+      <div class="field-row">
+        <label>Banner Image URL</label>
+        <input type="text" id="nlSponsoredImg" placeholder="https://...">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Headline</label>
+        <input type="text" id="nlSponsoredHeadline" placeholder="e.g. Your Ad Here">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Body Text</label>
+        <input type="text" id="nlSponsoredBody" placeholder="e.g. Horizontal sponsor placement — full-width banner area for partner content.">
+      </div>
+      <div class="field-row-inline" style="margin-top:12px">
+        <div>
+          <label>CTA Text</label>
+          <input type="text" id="nlSponsoredCta" placeholder="e.g. LEARN MORE">
+        </div>
+        <div>
+          <label>CTA Link</label>
+          <input type="text" id="nlSponsoredLink" placeholder="https://...">
+        </div>
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Insert after row #</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="nlSponsoredPosition" value="3" style="width:60px;text-align:center;">
+          <span style="font-size:13px;color:#888;">Each row = 2 products (default: after row 3)</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="productCards"></div>
+
+    <button class="generate-btn" id="generateBtn">Generate Newsletter HTML</button>
+
+    <div class="nl-output" id="nlOutput" style="display:none">
+      <div class="card">
+        <div class="btn-group" id="outputToggle" style="margin-bottom:16px">
+          <button data-val="code" class="active">HTML Code</button>
+          <button data-val="preview">Preview</button>
+        </div>
+        <div id="outputCode">
+          <textarea id="nlOutputCode" readonly></textarea>
+        </div>
+        <div id="outputPreview" style="display:none">
+          <iframe id="nlPreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:600px;background:#fff;"></iframe>
+        </div>
+        <button class="copy-btn" id="nlCopyBtn" style="margin-top:12px">Copy HTML</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: URL Cleaner -->
+  <div class="tab-content" id="tab-cleaner">
+    <div class="card">
+      <h1>URL Cleaner</h1>
+
+      <div class="mode-toggle" id="clnModeToggle">
+        <button class="active" data-val="single">Single</button>
+        <button data-val="bulk">Bulk</button>
+      </div>
+
+      <!-- Single mode -->
+      <div id="clnSingleMode">
+        <label>URL</label>
+        <input type="text" id="clnInput" placeholder="Paste any URL to clean...">
+        <div class="error" id="clnError"></div>
+      </div>
+
+      <!-- Bulk mode -->
+      <div id="clnBulkMode" style="display:none">
+        <label>URLs (one per line)</label>
+        <textarea class="bulk-area" id="clnBulkInput" placeholder="Paste multiple URLs here, one per line..."></textarea>
+        <div class="error" id="clnBulkError"></div>
+      </div>
+
+      <div class="cleaner-options">
+        <label class="cleaner-option"><input type="checkbox" id="clnYtShorten"> Shorten YouTube to youtu.be</label>
+        <label class="cleaner-option"><input type="checkbox" id="clnAffiliate"> Affiliate Amazon URLs</label>
+      </div>
+
+      <div class="affiliate-options hidden" id="clnAffiliateOptions">
+        <div class="selectors" style="margin:0">
+          <div class="selector-group">
+            <label>Brand</label>
+            <div class="btn-group" id="clnBrandGroup">
+              <button data-val="htg" class="active">HTG</button>
+              <button data-val="xda">XDA</button>
+              <button data-val="muo">MUO</button>
+              <button data-val="ap">AP</button>
+              <button data-val="pl">PL</button>
+            </div>
+          </div>
+          <div class="selector-group">
+            <label>Purpose</label>
+            <div class="btn-group" id="clnPurposeGroup">
+              <button data-val="tcp" class="active">TCP</button>
+              <button data-val="newsletter">Newsletter</button>
+              <button data-val="fb">FB</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Single result -->
+      <div class="result-box" id="clnResultBox">
+        <div class="result-url" id="clnResultUrl"></div>
+        <button class="copy-btn" id="clnCopyBtn">Copy to Clipboard</button>
+        <div class="info-note" id="clnNote" style="display:none"></div>
+      </div>
+
+      <!-- Bulk result -->
+      <div class="result-box" id="clnBulkResultBox">
+        <label>Cleaned URLs</label>
+        <textarea class="bulk-area bulk-output" id="clnBulkOutput" readonly></textarea>
+        <div class="bulk-count" id="clnBulkCount"></div>
+        <button class="copy-btn" id="clnBulkCopyBtn">Copy All to Clipboard</button>
+        <div class="info-note" id="clnBulkNote" style="display:none"></div>
+      </div>
+
+      <div style="margin-top:24px;padding:16px;background:#f9f9fb;border-radius:10px;font-size:13px;color:#666;line-height:1.6;">
+        <strong style="color:#1d1d1f;">What this does</strong>
+        <ul style="margin:8px 0 0 16px;padding:0;">
+          <li>Strips UTM parameters and other tracking codes from any URL.</li>
+          <li>Unwraps redirect wrappers from Facebook, Google, href.li, and BusinessWire.</li>
+          <li>Preserves essential parameters (YouTube video ID/timestamp, search queries, Google Play IDs, etc.).</li>
+          <li>Shortens Amazon, Best Buy, and Walmart product URLs to their cleanest form.</li>
+          <li>Best Buy and Walmart links are not affiliated. Enable "Affiliate Amazon URLs" above to tag Amazon links.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // --- Tabs ---
+  document.querySelector('.tabs').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    document.getElementById('tab-' + e.target.dataset.tab).classList.add('active');
+  });
+
+  // --- Shared helpers ---
+  function initToggle(groupId, setter, cb) {
+    var group = document.getElementById(groupId);
+    group.addEventListener('click', function(e) {
+      if (e.target.tagName !== 'BUTTON') return;
+      group.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+      e.target.classList.add('active');
+      setter(e.target.dataset.val);
+      if (cb) cb();
+    });
+  }
+
+  function initModeToggle(toggleId, singleId, bulkId, onSwitch) {
+    var toggle = document.getElementById(toggleId);
+    toggle.addEventListener('click', function(e) {
+      if (e.target.tagName !== 'BUTTON') return;
+      toggle.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+      e.target.classList.add('active');
+      var mode = e.target.dataset.val;
+      document.getElementById(singleId).style.display = mode === 'single' ? '' : 'none';
+      document.getElementById(bulkId).style.display = mode === 'bulk' ? '' : 'none';
+      if (onSwitch) onSwitch(mode);
+    });
+  }
+
+  function copyWithFeedback(btn, text, label) {
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = label || 'Copy to Clipboard'; btn.classList.remove('copied'); }, 1500);
+    });
+  }
+
+  function tagAmazonUrl(raw, tagId) {
+    var m = raw.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+    if (!m) return null;
+    return 'https://amazon.com/dp/' + m[1] + '?tag=' + tagId;
+  }
+
+  function getTag(brand, purpose) {
+    if (brand === 'ap' && purpose === 'newsletter') return 'ap-newsletter04-20';
+    return brand + '-' + purpose + '-20';
+  }
+
+  // =============================================
+  // URL Cleaner core logic
+  // =============================================
+  function cleanUrl(link, options) {
+    options = options || {};
+    var raw = link.trim();
+    if (!raw) return null;
+
+    // Try to extract a URL if the string contains non-URL text
+    try {
+      var oldLink = new URL(raw);
+    } catch(e) {
+      var extracted = raw.match(/https?:\/\/\S+/);
+      if (extracted) {
+        try { var oldLink = new URL(extracted[0]); } catch(e2) { return null; }
+      } else {
+        return null;
+      }
+    }
+
+    var notes = [];
+
+    // --- Unwrap redirect wrappers ---
+    if (oldLink.host === 'l.facebook.com' && oldLink.searchParams.has('u')) {
+      oldLink = new URL(decodeURI(oldLink.searchParams.get('u')));
+    } else if (oldLink.host === 'href.li') {
+      oldLink = new URL(oldLink.href.split('?')[1]);
+    } else if (oldLink.host === 'www.google.com' && oldLink.pathname === '/url' && oldLink.searchParams.has('url')) {
+      oldLink = new URL(oldLink.searchParams.get('url'));
+    } else if (oldLink.host === 'cts.businesswire.com' && oldLink.searchParams.has('url')) {
+      oldLink = new URL(oldLink.searchParams.get('url'));
+    }
+
+    // --- Build clean URL (strip all params by default) ---
+    var newLink = new URL(oldLink.origin + oldLink.pathname);
+
+    // --- Preserve essential parameters per-site ---
+
+    // Universal: search query
+    if (oldLink.searchParams.has('q')) {
+      newLink.searchParams.append('q', oldLink.searchParams.get('q'));
+    }
+
+    // YouTube
+    if (oldLink.host.endsWith('youtube.com') && oldLink.searchParams.has('v')) {
+      if (options.ytShorten) {
+        var regex = /^.*(youtu\.be\/|embed\/|shorts\/|\?v=|\&v=)(?<videoID>[^#\&\?]*).*/;
+        var match = regex.exec(oldLink.href);
+        if (match && match.groups && match.groups.videoID) {
+          newLink = new URL('https://youtu.be/' + match.groups.videoID);
+        }
+      } else {
+        newLink.searchParams.append('v', oldLink.searchParams.get('v'));
+      }
+      if (oldLink.searchParams.has('t')) {
+        newLink.searchParams.append('t', oldLink.searchParams.get('t'));
+      }
+    } else if (oldLink.host.endsWith('youtube.com') && oldLink.pathname.includes('playlist') && oldLink.searchParams.has('list')) {
+      newLink.searchParams.append('list', oldLink.searchParams.get('list'));
+    } else if (oldLink.host === 'youtu.be' && oldLink.searchParams.has('t')) {
+      newLink.searchParams.append('t', oldLink.searchParams.get('t'));
+    }
+
+    // Google Play
+    if (oldLink.host === 'play.google.com' && oldLink.searchParams.has('id')) {
+      newLink.searchParams.append('id', oldLink.searchParams.get('id'));
+    }
+
+    // Macy's
+    if (oldLink.host === 'www.macys.com' && oldLink.searchParams.has('ID')) {
+      newLink.searchParams.append('ID', oldLink.searchParams.get('ID'));
+    }
+
+    // Facebook story
+    if (oldLink.host === 'www.facebook.com' && oldLink.pathname.includes('story.php')) {
+      newLink.searchParams.append('story_fbid', oldLink.searchParams.get('story_fbid'));
+      newLink.searchParams.append('id', oldLink.searchParams.get('id'));
+    }
+
+    // Amazon — shorten to /dp/ASIN
+    if (oldLink.host.includes('amazon') && (oldLink.pathname.includes('/dp/') || oldLink.pathname.includes('/d/') || oldLink.pathname.includes('/product/') || oldLink.pathname.includes('/gp/product/'))) {
+      newLink.hostname = newLink.hostname.replace('www.', '');
+      var asinRegex = /\/(?:dp|gp\/product|product|d)\/([A-Z0-9]{10})/i;
+      var asinMatch = asinRegex.exec(oldLink.pathname);
+      if (asinMatch && asinMatch[1]) {
+        newLink.pathname = '/dp/' + asinMatch[1];
+      }
+      // Affiliate if enabled
+      if (options.affiliate && options.affiliateTag) {
+        newLink.searchParams.append('tag', options.affiliateTag);
+      }
+    }
+
+    // Lenovo
+    if (oldLink.host === 'www.lenovo.com' && oldLink.searchParams.has('bundleId')) {
+      newLink.searchParams.append('bundleId', oldLink.searchParams.get('bundleId'));
+    }
+
+    // Best Buy — shorten product URLs, warn on any Best Buy link
+    if (oldLink.host === 'www.bestbuy.com' || oldLink.host === 'bestbuy.com') {
+      if (oldLink.pathname.includes('.p')) {
+        var bbRegex = /\/(\d+)\.p/;
+        var bbMatch = oldLink.pathname.match(bbRegex);
+        if (bbMatch) {
+          newLink.pathname = '/site/' + bbMatch[1] + '.p';
+        }
+      }
+      notes.push('Best Buy link is not affiliated');
+    }
+
+    // Walmart — shorten product URLs, warn on any Walmart link
+    if (oldLink.host === 'www.walmart.com' || oldLink.host === 'walmart.com') {
+      if (oldLink.pathname.includes('/ip/')) {
+        var wmRegex = /\/ip\/.*\/(\d+)/;
+        var wmMatch = oldLink.pathname.match(wmRegex);
+        if (wmMatch) {
+          newLink.pathname = '/ip/' + wmMatch[1];
+        }
+      }
+      notes.push('Walmart link is not affiliated');
+    }
+
+    // Xiaohongshu
+    if (oldLink.host === 'www.xiaohongshu.com' && oldLink.searchParams.has('xsec_token')) {
+      newLink.searchParams.append('xsec_token', oldLink.searchParams.get('xsec_token'));
+    }
+
+    // Apple Weather
+    if (oldLink.host === 'weatherkit.apple.com') {
+      ['lang', 'party', 'ids'].forEach(function(p) {
+        if (oldLink.searchParams.has(p)) newLink.searchParams.append(p, oldLink.searchParams.get(p));
+      });
+    }
+
+    // Webtoons
+    if (oldLink.host === 'www.webtoons.com' && oldLink.searchParams.has('title_no') && oldLink.searchParams.has('episode_no')) {
+      newLink.searchParams.append('title_no', oldLink.searchParams.get('title_no'));
+      newLink.searchParams.append('episode_no', oldLink.searchParams.get('episode_no'));
+    }
+
+    return { url: newLink.toString(), notes: notes };
+  }
+
+  // =============================================
+  // Amazon URL Tagger
+  // =============================================
+  var urlInput = document.getElementById('urlInput');
+  var errorEl = document.getElementById('error');
+  var resultBox = document.getElementById('resultBox');
+  var resultUrl = document.getElementById('resultUrl');
+  var tagBadge = document.getElementById('tagBadge');
+  var copyBtn = document.getElementById('copyBtn');
+
+  var site = 'htg';
+  var purpose = 'tcp';
+  var amzMode = 'single';
+
+  initToggle('siteGroup', function(v) { site = v; }, generateAmz);
+  initToggle('purposeGroup', function(v) { purpose = v; }, generateAmz);
+  initModeToggle('amzModeToggle', 'amzSingleMode', 'amzBulkMode', function(mode) {
+    amzMode = mode;
+    // Hide both result boxes on mode switch
+    resultBox.classList.remove('visible');
+    document.getElementById('amzBulkResultBox').classList.remove('visible');
+  });
+
+  urlInput.addEventListener('input', generateAmz);
+  document.getElementById('amzBulkInput').addEventListener('input', generateAmzBulk);
+
+  function generateAmz() {
+    if (amzMode === 'bulk') { generateAmzBulk(); return; }
+    var raw = urlInput.value.trim();
+    errorEl.classList.remove('visible');
+    resultBox.classList.remove('visible');
+    copyBtn.textContent = 'Copy to Clipboard';
+    copyBtn.classList.remove('copied');
+    if (!raw) return;
+
+    var tag = getTag(site, purpose);
+    var cleanedUrl = tagAmazonUrl(raw, tag);
+    if (!cleanedUrl) {
+      errorEl.textContent = 'Could not find an Amazon ASIN in this URL.';
+      errorEl.classList.add('visible');
+      return;
+    }
+
+    tagBadge.textContent = tag;
+    resultUrl.textContent = cleanedUrl;
+    resultBox.classList.add('visible');
+  }
+
+  function generateAmzBulk() {
+    var lines = document.getElementById('amzBulkInput').value.split(/\n/).filter(function(l) { return l.trim(); });
+    var errEl = document.getElementById('amzBulkError');
+    var outBox = document.getElementById('amzBulkResultBox');
+    errEl.classList.remove('visible');
+    outBox.classList.remove('visible');
+    if (!lines.length) return;
+
+    var tag = getTag(site, purpose);
+    var results = [];
+    var errors = 0;
+    lines.forEach(function(line) {
+      var tagged = tagAmazonUrl(line.trim(), tag);
+      if (tagged) {
+        results.push(tagged);
+      } else {
+        errors++;
+      }
+    });
+
+    if (results.length === 0) {
+      errEl.textContent = 'No valid Amazon ASINs found in any of the URLs.';
+      errEl.classList.add('visible');
+      return;
+    }
+
+    document.getElementById('amzBulkOutput').value = results.join('\n');
+    var countText = results.length + ' URL' + (results.length !== 1 ? 's' : '') + ' tagged';
+    if (errors > 0) countText += ', ' + errors + ' skipped (no ASIN found)';
+    document.getElementById('amzBulkCount').textContent = countText;
+    outBox.classList.add('visible');
+  }
+
+  copyBtn.addEventListener('click', function() {
+    copyWithFeedback(copyBtn, resultUrl.textContent);
+  });
+
+  document.getElementById('amzBulkCopyBtn').addEventListener('click', function() {
+    copyWithFeedback(this, document.getElementById('amzBulkOutput').value, 'Copy All to Clipboard');
+  });
+
+  // =============================================
+  // URL Cleaner tab
+  // =============================================
+  var clnBrand = 'htg';
+  var clnPurpose = 'tcp';
+  var clnMode = 'single';
+
+  initToggle('clnBrandGroup', function(v) { clnBrand = v; }, generateClean);
+  initToggle('clnPurposeGroup', function(v) { clnPurpose = v; }, generateClean);
+  initModeToggle('clnModeToggle', 'clnSingleMode', 'clnBulkMode', function(mode) {
+    clnMode = mode;
+    document.getElementById('clnResultBox').classList.remove('visible');
+    document.getElementById('clnBulkResultBox').classList.remove('visible');
+  });
+
+  // Toggle affiliate options visibility
+  document.getElementById('clnAffiliate').addEventListener('change', function() {
+    document.getElementById('clnAffiliateOptions').classList.toggle('hidden', !this.checked);
+    generateClean();
+  });
+  document.getElementById('clnYtShorten').addEventListener('change', generateClean);
+
+  document.getElementById('clnInput').addEventListener('input', generateClean);
+  document.getElementById('clnBulkInput').addEventListener('input', generateCleanBulk);
+
+  function getCleanerOptions() {
+    var affiliateChecked = document.getElementById('clnAffiliate').checked;
+    return {
+      ytShorten: document.getElementById('clnYtShorten').checked,
+      affiliate: affiliateChecked,
+      affiliateTag: affiliateChecked ? getTag(clnBrand, clnPurpose) : null
+    };
+  }
+
+  function generateClean() {
+    if (clnMode === 'bulk') { generateCleanBulk(); return; }
+    var raw = document.getElementById('clnInput').value.trim();
+    var errEl = document.getElementById('clnError');
+    var resBox = document.getElementById('clnResultBox');
+    var resUrl = document.getElementById('clnResultUrl');
+    var noteEl = document.getElementById('clnNote');
+    errEl.classList.remove('visible');
+    resBox.classList.remove('visible');
+    noteEl.style.display = 'none';
+    if (!raw) return;
+
+    var result = cleanUrl(raw, getCleanerOptions());
+    if (!result) {
+      errEl.textContent = 'Could not parse a valid URL from the input.';
+      errEl.classList.add('visible');
+      return;
+    }
+
+    resUrl.textContent = result.url;
+    if (result.notes.length > 0) {
+      noteEl.textContent = result.notes.join('. ') + '.';
+      noteEl.style.display = 'block';
+    }
+    resBox.classList.add('visible');
+  }
+
+  function generateCleanBulk() {
+    var lines = document.getElementById('clnBulkInput').value.split(/\n/).filter(function(l) { return l.trim(); });
+    var errEl = document.getElementById('clnBulkError');
+    var outBox = document.getElementById('clnBulkResultBox');
+    var noteEl = document.getElementById('clnBulkNote');
+    errEl.classList.remove('visible');
+    outBox.classList.remove('visible');
+    noteEl.style.display = 'none';
+    if (!lines.length) return;
+
+    var opts = getCleanerOptions();
+    var results = [];
+    var errors = 0;
+    var allNotes = {};
+    lines.forEach(function(line) {
+      var result = cleanUrl(line.trim(), opts);
+      if (result) {
+        results.push(result.url);
+        result.notes.forEach(function(n) { allNotes[n] = true; });
+      } else {
+        errors++;
+      }
+    });
+
+    if (results.length === 0) {
+      errEl.textContent = 'No valid URLs found in the input.';
+      errEl.classList.add('visible');
+      return;
+    }
+
+    document.getElementById('clnBulkOutput').value = results.join('\n');
+    var countText = results.length + ' URL' + (results.length !== 1 ? 's' : '') + ' cleaned';
+    if (errors > 0) countText += ', ' + errors + ' skipped (invalid)';
+    document.getElementById('clnBulkCount').textContent = countText;
+
+    var noteKeys = Object.keys(allNotes);
+    if (noteKeys.length > 0) {
+      noteEl.textContent = noteKeys.join('. ') + '.';
+      noteEl.style.display = 'block';
+    }
+
+    outBox.classList.add('visible');
+  }
+
+  document.getElementById('clnCopyBtn').addEventListener('click', function() {
+    copyWithFeedback(this, document.getElementById('clnResultUrl').textContent);
+  });
+
+  document.getElementById('clnBulkCopyBtn').addEventListener('click', function() {
+    copyWithFeedback(this, document.getElementById('clnBulkOutput').value, 'Copy All to Clipboard');
+  });
+
+  // =============================================
+  // Deals Newsletter Builder
+  // =============================================
+  var nlBrand = 'htg';
+  initToggle('nlBrandGroup', function(v) { nlBrand = v; });
+
+  var productDefs = [
+    { label: 'Deal of the Day', cls: 'deal-of-day' },
+    { label: 'Product 2', cls: '' },
+    { label: "Editor's Pick", cls: 'editors-pick' },
+    { label: 'Product 4', cls: '' },
+    { label: 'Product 5', cls: '' },
+    { label: 'Product 6', cls: '' },
+    { label: 'Product 7', cls: '' },
+    { label: 'Product 8', cls: '' }
+  ];
+
+  var container = document.getElementById('productCards');
+  productDefs.forEach(function(def, i) {
+    var card = document.createElement('div');
+    card.className = 'card product-card' + (def.cls ? ' ' + def.cls : '');
+    card.innerHTML =
+      '<span class="product-num">' + def.label + '</span>' +
+      '<div class="field-row"><label>Product Title</label><input type="text" class="nl-title" placeholder="e.g. Sony WH-1000XM5"></div>' +
+      '<div class="field-row-inline">' +
+        '<div><label>Amazon URL</label><input type="text" class="nl-url" placeholder="amazon.com/dp/..."></div>' +
+        '<div><label>Image URL</label><input type="text" class="nl-img" placeholder="https://..."></div>' +
+      '</div>' +
+      '<div class="field-row-inline">' +
+        '<div><label>Current Price</label><input type="text" class="nl-price" placeholder="e.g. 240"></div>' +
+        '<div><label>Original Price</label><input type="text" class="nl-orig-price" placeholder="e.g. 300"></div>' +
+        '<div><label>CTA Text</label><input type="text" class="nl-cta" placeholder="e.g. GET DEAL" value="GET DEAL"></div>' +
+      '</div>' +
+      '<div class="field-row" style="display:flex;align-items:center;gap:12px;">' +
+        '<label class="cleaner-option" style="margin:0;"><input type="checkbox" class="nl-skip-affiliate"> Bypass link processing</label>' +
+      '</div>';
+    container.appendChild(card);
+  });
+
+  var headerMap = {
+    htg: {
+      img: 'https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/03/newsletter-htg_v2.png',
+      alt: 'HTG-Large',
+      link: 'https://www.howtogeek.com/deals/'
+    },
+    xda: {
+      img: 'https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/03/newsletter-xda_v2.png',
+      alt: 'XDA-Large',
+      link: 'https://www.xda-developers.com/deals/'
+    }
+  };
+
+  // Email-safe button using table-based approach (works in Outlook + Gmail)
+  function emailButton(href, label, bgColor, radius) {
+    var c = '';
+    c += '<table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr>';
+    c += '<td align="center" bgcolor="' + bgColor + '" style="background-color:' + bgColor + ';border-radius:' + radius + 'px;padding:10px 24px;">';
+    c += '<a href="' + href + '" rel="noopener noreferrer" target="_blank" style="color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:13px;font-weight:700;text-decoration:none;display:inline-block;">' + label + '</a>';
+    c += '</td></tr></table>';
+    return c;
+  }
+
+  var brandColors = {
+    htg: { cta: '#f7941d', badge: '#2d8e3c' },
+    xda: { cta: '#6b35a5', badge: '#2d8e3c' },
+    muo: { cta: '#c60d0d', badge: '#2d8e3c' },
+    ap:  { cta: '#e01a4f', badge: '#2d8e3c' },
+    pl:  { cta: '#ed1c24', badge: '#2d8e3c' }
+  };
+
+  function buildProductCell(data, colors, cellPad) {
+    cellPad = cellPad !== undefined ? cellPad : 8;
+    var innerW = 284 - (cellPad * 2);
+    var ctaColor = colors.cta;
+    var badgeColor = colors.badge;
+    var c = '';
+    c += '<td width="284" valign="top" align="center" style="width:284px;max-width:284px;padding:' + cellPad + 'px;">';
+    c += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e5e5e7;border-radius:12px;border-collapse:separate;table-layout:fixed;max-width:' + innerW + 'px;overflow:hidden;">';
+    // Colgroup to lock column width
+    c += '<colgroup><col width="' + innerW + '" /></colgroup>';
+    // Image (fixed height, cropped to consistent aspect ratio)
+    var imgH = 150;
+    if (data.img) {
+      c += '<tr><td width="' + innerW + '" align="center" style="padding:0;max-width:' + innerW + 'px;">';
+      c += '<div style="height:' + imgH + 'px;overflow:hidden;line-height:0;font-size:0;border-radius:12px 12px 0 0;">';
+      var imgTag = '<img alt="' + esc(data.title) + '" src="' + esc(data.img) + '" width="' + innerW + '" style="display:block;max-width:' + innerW + 'px;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:12px;color:#666;" />';
+      if (data.tagged) {
+        c += '<a href="' + data.tagged + '" rel="noopener noreferrer" target="_blank">' + imgTag + '</a>';
+      } else {
+        c += imgTag;
+      }
+      c += '</div></td></tr>';
+    }
+    // Title
+    c += '<tr><td width="' + innerW + '" style="padding:16px 16px 8px 16px;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:600;line-height:1.3;mso-line-height-rule:exactly;color:#1d1d1f;max-width:' + innerW + 'px;overflow:hidden;word-wrap:break-word;">';
+    c += esc(data.title) + '</td></tr>';
+    // Prices + discount badge on same line
+    if (data.price) {
+      var priceLine = '<span style="font-size:24px;font-weight:700;color:#1d1d1f;margin-right:8px;">$' + esc(data.price) + '</span>';
+      if (data.origPrice) {
+        priceLine += '<span style="font-size:14px;color:#999;text-decoration:line-through;margin-right:8px;">$' + esc(data.origPrice) + '</span>';
+        var cur = parseFloat(data.price.replace(/,/g, ''));
+        var orig = parseFloat(data.origPrice.replace(/,/g, ''));
+        if (!isNaN(cur) && !isNaN(orig) && orig > cur) {
+          var pct = Math.round((orig - cur) / orig * 100);
+          priceLine += '<span class="nl-save-badge" style="display:inline-block;background-color:' + badgeColor + ';color:#ffffff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;vertical-align:baseline;line-height:1;">SAVE ' + pct + '%</span>';
+        }
+      }
+      c += '<tr><td class="nl-price-row" style="padding:0 16px 12px 16px;mso-line-height-rule:exactly;">' + priceLine + '</td></tr>';
+    }
+    // CTA button (with VML fallback for Outlook)
+    c += '<tr><td align="center" style="padding:0 16px 16px 16px;mso-line-height-rule:exactly;">';
+    if (data.tagged) {
+      c += emailButton(data.tagged, esc(data.cta), ctaColor, 6);
+    } else {
+      c += '<span style="display:inline-block;background-color:' + ctaColor + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(data.cta) + '</span>';
+    }
+    c += '</td></tr>';
+    c += '</table>';
+    c += '</td>';
+    return c;
+  }
+
+  document.getElementById('generateBtn').addEventListener('click', function() {
+    var urgencyText = document.getElementById('nlUrgencyBanner').value.trim();
+    var introTitle = document.getElementById('nlIntroTitle').value.trim();
+    var introText = document.getElementById('nlIntroText').value.trim();
+    var tag = getTag(nlBrand, 'newsletter');
+    var header = headerMap[nlBrand];
+    var colors = brandColors[nlBrand] || brandColors.htg;
+    var pollHtml = document.getElementById('nlPollHtml').value.trim();
+    var pollPosition = parseInt(document.getElementById('nlPollPosition').value) || 1;
+    var bannerPosRaw = document.getElementById('nlBannerPosition').value.trim().toLowerCase();
+    var bannerPosition = (bannerPosRaw === 'end' || bannerPosRaw === '') ? Infinity : (parseInt(bannerPosRaw) || Infinity);
+
+    // Sponsored ad block
+    var spImg = document.getElementById('nlSponsoredImg').value.trim();
+    var spHeadline = document.getElementById('nlSponsoredHeadline').value.trim();
+    var spBody = document.getElementById('nlSponsoredBody').value.trim();
+    var spCta = document.getElementById('nlSponsoredCta').value.trim();
+    var spLink = document.getElementById('nlSponsoredLink').value.trim();
+    var spPosition = parseInt(document.getElementById('nlSponsoredPosition').value) || 3;
+    var hasSponsored = !!(spImg || spHeadline || spBody);
+    var sponsoredInserted = false;
+
+    var sponsoredHtml = '';
+    if (hasSponsored) {
+      sponsoredHtml += '<tr><td colspan="2" style="padding:8px;">\n';
+      sponsoredHtml += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e5e5e7;border-radius:12px;border-collapse:separate;">\n';
+      if (spImg) {
+        sponsoredHtml += '<tr><td align="center" style="padding:0;border:none;">';
+        var spImgTag = '<img alt="' + esc(spHeadline || 'Sponsored') + '" src="' + esc(spImg) + '" width="100%" style="display:block;" />';
+        if (spLink) sponsoredHtml += '<a href="' + esc(spLink) + '" rel="noopener noreferrer" target="_blank">' + spImgTag + '</a>';
+        else sponsoredHtml += spImgTag;
+        sponsoredHtml += '</td></tr>\n';
+      }
+      sponsoredHtml += '<tr><td align="center" style="padding:20px;border:none;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;">';
+      sponsoredHtml += '<p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin:0 0 6px 0;">SPONSORED</p>';
+      if (spHeadline) sponsoredHtml += '<p style="font-size:18px;font-weight:700;color:#1d1d1f;margin:0 0 6px 0;">' + esc(spHeadline) + '</p>';
+      if (spBody) sponsoredHtml += '<p style="font-size:14px;color:#666;font-style:italic;margin:0 0 14px 0;">' + esc(spBody) + '</p>';
+      if (spCta && spLink) {
+        sponsoredHtml += emailButton(esc(spLink), esc(spCta), colors.cta, 6);
+      } else if (spCta) {
+        sponsoredHtml += '<span style="display:inline-block;background-color:' + colors.cta + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(spCta) + '</span>';
+      }
+      sponsoredHtml += '</td></tr>\n</table>\n';
+      sponsoredHtml += '</td></tr>\n';
+    }
+
+    var html = '';
+
+    // Style block for Outlook fixes (Gmail strips it, Outlook keeps it)
+    html += '<style>\n';
+    html += '  .nl-price-row span { margin-right:8px !important; }\n';
+    html += '  .nl-save-badge { font-size:10px !important; padding:2px 6px !important; line-height:1 !important; vertical-align:baseline !important; }\n';
+    html += '</style>\n';
+
+    // Urgency banner
+    if (urgencyText) {
+      html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;"><tr>';
+      html += '<td align="center" bgcolor="#e87400" style="background-color:#e87400;padding:12px 16px;border-radius:8px;">';
+      html += '<span style="color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;">' + esc(urgencyText) + '</span>';
+      html += '</td></tr></table>\n\n';
+    }
+
+    // Intro
+    if (introTitle) html += '<h3>' + esc(introTitle) + '</h3>\n';
+    if (introText) html += esc(introText) + '&nbsp;\n\n';
+
+    // Banner HTML (built once, inserted at configured position)
+    var bannerHtml = '';
+    if (header) {
+      bannerHtml += '<tr><td colspan="2" style="padding:8px;">';
+      bannerHtml += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
+      bannerHtml += '<img alt="' + header.alt + '" src="' + header.img + '" width="100%" style="display:block;border-radius:12px;" />';
+      bannerHtml += '</a></div>';
+      bannerHtml += '</td></tr>\n';
+    }
+    var bannerInserted = false;
+
+    // Collect product data
+    var cards = container.querySelectorAll('.product-card');
+    var products = [];
+    cards.forEach(function(card, i) {
+      var title = card.querySelector('.nl-title').value.trim();
+      var url = card.querySelector('.nl-url').value.trim();
+      var cta = card.querySelector('.nl-cta').value.trim() || 'GET DEAL';
+      var img = card.querySelector('.nl-img').value.trim();
+
+      var price = card.querySelector('.nl-price').value.trim();
+      var origPrice = card.querySelector('.nl-orig-price').value.trim();
+      var bypass = card.querySelector('.nl-skip-affiliate').checked;
+      var tagged = null;
+      if (url) {
+        if (bypass) {
+          tagged = url;
+        } else {
+          var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+          if (asinMatch) {
+            tagged = 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag;
+          }
+        }
+      }
+
+      // Skip completely empty products
+      if (!title && !url) return;
+
+      products.push({ title: title, url: url, cta: cta, img: img, price: price, origPrice: origPrice, tagged: tagged, defIndex: i });
+    });
+
+    var sectionLabels = {
+      0: "EDITOR'S TOP PICKS",
+      2: "EDITOR'S PICK"
+    };
+    var rowCount = 0;
+
+    // Master table — all content in one width context for alignment
+    html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:0 auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;">\n';
+
+    // Insert banner at position 0 (before any deals)
+    if (header && bannerPosition === 0) {
+      html += bannerHtml;
+      bannerInserted = true;
+    }
+
+    // Render products in 2-column grid
+    for (var p = 0; p < products.length; p++) {
+      var prod = products[p];
+
+      // Section label before certain slots
+      if (sectionLabels[prod.defIndex] && (prod.defIndex === 0 || rowCount > 0)) {
+        html += '<tr><td colspan="2" style="padding:0 8px;"><hr style="border:none;border-top:1px solid #e5e5e7;margin:24px 0;" /></td></tr>\n';
+        html += '<tr><td colspan="2"><h3 style="text-align:center;font-size:13px;font-weight:700;letter-spacing:2px;color:#888;margin:16px 0;">' + sectionLabels[prod.defIndex] + '</h3></td></tr>\n';
+      }
+
+      // Start a 2-column row
+      var left = prod;
+      var right = (p + 1 < products.length && !sectionLabels[products[p + 1].defIndex]) ? products[p + 1] : null;
+
+      html += '<tr>\n';
+      html += buildProductCell(left, colors, 4);
+
+      if (right) {
+        html += '\n' + buildProductCell(right, colors, 4);
+        p++; // skip next since we consumed it
+      } else {
+        html += '\n<td width="284" style="width:284px;"></td>';
+      }
+
+      html += '\n</tr>\n';
+      rowCount++;
+
+      // Insert poll after configured row
+      if (pollHtml && rowCount === pollPosition) {
+        var trimmedPoll = pollHtml.replace(/<hr[^>]*>\s*$/, '');
+        html += '<tr><td colspan="2" style="padding:8px 0;">' + trimmedPoll + '</td></tr>\n';
+        pollHtml = ''; // only insert once
+      }
+
+      // Insert sponsored ad after configured row
+      if (hasSponsored && !sponsoredInserted && rowCount >= spPosition) {
+        html += sponsoredHtml;
+        sponsoredInserted = true;
+      }
+
+      // Insert banner after configured row count
+      if (header && !bannerInserted && rowCount >= bannerPosition) {
+        html += bannerHtml;
+        bannerInserted = true;
+      }
+    }
+
+    // Insert sponsored ad at end if not yet placed
+    if (hasSponsored && !sponsoredInserted) {
+      html += sponsoredHtml;
+    }
+
+    // Insert banner at end if not yet placed
+    if (header && !bannerInserted) {
+      html += bannerHtml;
+    }
+
+    // Final separator + close master table
+    if (rowCount > 0) {
+      html += '<tr><td colspan="2" style="padding:0 8px;"><hr style="border:none;border-top:1px solid #e5e5e7;margin:24px 0;" /></td></tr>\n';
+    }
+    html += '</table>\n';
+
+    document.getElementById('nlOutputCode').value = html;
+    document.getElementById('nlOutput').style.display = 'block';
+
+    // Render preview
+    var frame = document.getElementById('nlPreviewFrame');
+    var previewHtml = '<!DOCTYPE html><html><head><style>'
+      + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:24px;max-width:600px;color:#1d1d1f;line-height:1.5;}'
+      + 'img{max-width:100%;height:auto;}'
+      + 'h2{font-size:20px;margin:12px 0 8px;}'
+      + 'h3{font-size:13px;color:#888;margin:16px 0 8px;text-align:center;letter-spacing:2px;font-weight:700;}'
+      + 'hr{border:none;border-top:1px solid #e5e5e7;margin:24px 0;}'
+      + 'a{color:#0071e3;text-decoration:none;}'
+      + 'table{border-spacing:0;border-collapse:separate;}'
+      + '.custom-anchor img{border-radius:12px;}'
+      + '</style></head><body>' + html + '</body></html>';
+    frame.srcdoc = previewHtml;
+    frame.onload = function() {
+      try { frame.style.height = frame.contentDocument.body.scrollHeight + 40 + 'px'; } catch(e) {}
+    };
+  });
+
+  // Output toggle (Preview / HTML Code)
+  document.getElementById('outputToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    var isPreview = e.target.dataset.val === 'preview';
+    document.getElementById('outputPreview').style.display = isPreview ? 'block' : 'none';
+    document.getElementById('outputCode').style.display = isPreview ? 'none' : 'block';
+  });
+
+  document.getElementById('nlCopyBtn').addEventListener('click', function() {
+    var btn = this;
+    var code = document.getElementById('nlOutputCode');
+    navigator.clipboard.writeText(code.value).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
+    });
+  });
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Poll HTML file import
+  document.getElementById('nlPollImportBtn').addEventListener('click', function() {
+    document.getElementById('nlPollImportFile').click();
+  });
+  document.getElementById('nlPollImportFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      document.getElementById('nlPollHtml').value = ev.target.result;
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // =============================================
+  // Newsletter CSV Export / Import
+  // =============================================
+  function csvEscape(val) {
+    val = val || '';
+    if (val.indexOf('"') !== -1 || val.indexOf(',') !== -1 || val.indexOf('\n') !== -1) {
+      return '"' + val.replace(/"/g, '""') + '"';
+    }
+    return val;
+  }
+
+  function csvParseLine(line) {
+    var cols = [];
+    var cur = '';
+    var inQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { cur += ch; }
+      } else {
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === ',') { cols.push(cur); cur = ''; }
+        else { cur += ch; }
+      }
+    }
+    cols.push(cur);
+    return cols;
+  }
+
+  document.getElementById('nlExportBtn').addEventListener('click', function() {
+    var rows = [];
+    // Header row
+    rows.push(['field', 'slot', 'value'].map(csvEscape).join(','));
+
+    // Global fields
+    var globals = [
+      ['brand', '', nlBrand],
+      ['urgencyBanner', '', document.getElementById('nlUrgencyBanner').value],
+      ['introTitle', '', document.getElementById('nlIntroTitle').value],
+      ['introText', '', document.getElementById('nlIntroText').value],
+      ['bannerPosition', '', document.getElementById('nlBannerPosition').value],
+      ['pollHtml', '', document.getElementById('nlPollHtml').value],
+      ['pollPosition', '', document.getElementById('nlPollPosition').value],
+      ['sponsoredImg', '', document.getElementById('nlSponsoredImg').value],
+      ['sponsoredHeadline', '', document.getElementById('nlSponsoredHeadline').value],
+      ['sponsoredBody', '', document.getElementById('nlSponsoredBody').value],
+      ['sponsoredCta', '', document.getElementById('nlSponsoredCta').value],
+      ['sponsoredLink', '', document.getElementById('nlSponsoredLink').value],
+      ['sponsoredPosition', '', document.getElementById('nlSponsoredPosition').value]
+    ];
+    globals.forEach(function(g) { rows.push(g.map(csvEscape).join(',')); });
+
+    // Product cards
+    var cards = container.querySelectorAll('.product-card');
+    cards.forEach(function(card, i) {
+      var fields = [
+        ['title', String(i + 1), card.querySelector('.nl-title').value],
+        ['url', String(i + 1), card.querySelector('.nl-url').value],
+        ['img', String(i + 1), card.querySelector('.nl-img').value],
+        ['price', String(i + 1), card.querySelector('.nl-price').value],
+        ['origPrice', String(i + 1), card.querySelector('.nl-orig-price').value],
+        ['cta', String(i + 1), card.querySelector('.nl-cta').value],
+        ['skipAffiliate', String(i + 1), card.querySelector('.nl-skip-affiliate').checked ? '1' : '0']
+      ];
+      fields.forEach(function(f) { rows.push(f.map(csvEscape).join(',')); });
+    });
+
+    var csv = rows.join('\n');
+    var blob = new Blob([csv], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    var date = new Date().toISOString().slice(0, 10);
+    a.download = 'newsletter-' + nlBrand + '-' + date + '.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById('nlImportBtn').addEventListener('click', function() {
+    document.getElementById('nlImportFile').click();
+  });
+
+  document.getElementById('nlImportFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var lines = ev.target.result.split('\n');
+      // Skip header row
+      var start = (lines[0] && lines[0].indexOf('field') === 0) ? 1 : 0;
+
+      var cards = container.querySelectorAll('.product-card');
+      var cardFieldMap = {
+        title: '.nl-title', url: '.nl-url', img: '.nl-img',
+        price: '.nl-price', origPrice: '.nl-orig-price', cta: '.nl-cta'
+      };
+
+      // Clear all product cards first
+      cards.forEach(function(card) {
+        Object.keys(cardFieldMap).forEach(function(k) {
+          card.querySelector(cardFieldMap[k]).value = '';
+        });
+        card.querySelector('.nl-skip-affiliate').checked = false;
+      });
+
+      for (var i = start; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        var cols = csvParseLine(lines[i]);
+        var field = cols[0];
+        var slot = cols[1];
+        var val = cols[2] || '';
+
+        // Global fields
+        if (!slot) {
+          if (field === 'brand') {
+            nlBrand = val;
+            var brandBtns = document.getElementById('nlBrandGroup').querySelectorAll('button');
+            brandBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === val); });
+          }
+          else if (field === 'urgencyBanner') document.getElementById('nlUrgencyBanner').value = val;
+          else if (field === 'introTitle') document.getElementById('nlIntroTitle').value = val;
+          else if (field === 'introText') document.getElementById('nlIntroText').value = val;
+          else if (field === 'bannerPosition') document.getElementById('nlBannerPosition').value = val;
+          else if (field === 'pollHtml') document.getElementById('nlPollHtml').value = val;
+          else if (field === 'pollPosition') document.getElementById('nlPollPosition').value = val;
+          else if (field === 'sponsoredImg') document.getElementById('nlSponsoredImg').value = val;
+          else if (field === 'sponsoredHeadline') document.getElementById('nlSponsoredHeadline').value = val;
+          else if (field === 'sponsoredBody') document.getElementById('nlSponsoredBody').value = val;
+          else if (field === 'sponsoredCta') document.getElementById('nlSponsoredCta').value = val;
+          else if (field === 'sponsoredLink') document.getElementById('nlSponsoredLink').value = val;
+          else if (field === 'sponsoredPosition') document.getElementById('nlSponsoredPosition').value = val;
+        }
+        // Product card fields
+        else {
+          var idx = parseInt(slot) - 1;
+          if (idx < 0 || idx >= cards.length) continue;
+          var card = cards[idx];
+          if (field === 'skipAffiliate') {
+            card.querySelector('.nl-skip-affiliate').checked = val === '1';
+          } else if (cardFieldMap[field]) {
+            card.querySelector(cardFieldMap[field]).value = val;
+          }
+        }
+      }
+    };
+    reader.readAsText(file);
+    // Reset so the same file can be re-imported
+    e.target.value = '';
+  });
+
+  // =============================================
+  // Deal Block Generator
+  // =============================================
+  var dbBrand = 'htg';
+  initToggle('dbBrandGroup', function(v) { dbBrand = v; });
+
+  document.getElementById('dbGenerateBtn').addEventListener('click', function() {
+    var tag = getTag(dbBrand, 'newsletter');
+    var colors = brandColors[dbBrand] || brandColors.htg;
+    var cards = [document.getElementById('dbCard1'), document.getElementById('dbCard2')];
+    var products = [];
+
+    cards.forEach(function(card) {
+      var title = card.querySelector('.db-title').value.trim();
+      var url = card.querySelector('.db-url').value.trim();
+      var img = card.querySelector('.db-img').value.trim();
+      var price = card.querySelector('.db-price').value.trim();
+      var origPrice = card.querySelector('.db-orig-price').value.trim();
+      var cta = card.querySelector('.db-cta').value.trim() || 'GET DEAL';
+      var bypass = card.querySelector('.db-bypass').checked;
+      var tagged = null;
+      if (url) {
+        if (bypass) {
+          tagged = url;
+        } else {
+          var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+          if (asinMatch) {
+            tagged = 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag;
+          }
+        }
+      }
+      if (title || url) {
+        products.push({ title: title, url: url, cta: cta, img: img, price: price, origPrice: origPrice, tagged: tagged });
+      }
+    });
+
+    if (products.length === 0) return;
+
+    var html = '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:4px auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;">\n<tr>\n';
+    html += buildProductCell(products[0], colors, 4);
+    if (products.length > 1) {
+      html += '\n' + buildProductCell(products[1], colors, 4);
+    } else {
+      html += '\n<td width="284" style="width:284px;"></td>';
+    }
+    html += '\n</tr>\n</table>';
+
+    document.getElementById('dbOutputCodeArea').value = html;
+    document.getElementById('dbOutput').style.display = 'block';
+
+    // Preview
+    var frame = document.getElementById('dbPreviewFrame');
+    var previewHtml = '<!DOCTYPE html><html><head><style>'
+      + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:24px;max-width:600px;color:#1d1d1f;line-height:1.5;}'
+      + 'img{max-width:100%;height:auto;}'
+      + 'table{border-spacing:0;border-collapse:separate;}'
+      + '</style></head><body>' + html + '</body></html>';
+    frame.srcdoc = previewHtml;
+    frame.onload = function() {
+      try { frame.style.height = frame.contentDocument.body.scrollHeight + 40 + 'px'; } catch(e) {}
+    };
+  });
+
+  // Deal block output toggle
+  document.getElementById('dbOutputToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    var isPreview = e.target.dataset.val === 'preview';
+    document.getElementById('dbOutputPreview').style.display = isPreview ? 'block' : 'none';
+    document.getElementById('dbOutputCode').style.display = isPreview ? 'none' : 'block';
+  });
+
+  document.getElementById('dbCopyBtn').addEventListener('click', function() {
+    var btn = this;
+    navigator.clipboard.writeText(document.getElementById('dbOutputCodeArea').value).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
+    });
+  });
+</script>
+</body>
+</html>
