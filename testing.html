@@ -902,12 +902,13 @@
     pl:  { cta: '#ed1c24', badge: '#2d8e3c' }
   };
 
-  function buildProductCell(data, colors) {
-    var innerW = 252; // 284 - 16px padding each side
+  function buildProductCell(data, colors, cellPad) {
+    cellPad = cellPad !== undefined ? cellPad : 8;
+    var innerW = 284 - (cellPad * 2);
     var ctaColor = colors.cta;
     var badgeColor = colors.badge;
     var c = '';
-    c += '<td width="284" valign="top" align="center" style="width:284px;max-width:284px;padding:8px;">';
+    c += '<td width="284" valign="top" align="center" style="width:284px;max-width:284px;padding:' + cellPad + 'px;">';
     c += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e5e5e7;border-radius:12px;border-collapse:separate;table-layout:fixed;max-width:' + innerW + 'px;overflow:hidden;">';
     // Colgroup to lock column width
     c += '<colgroup><col width="' + innerW + '" /></colgroup>';
@@ -1390,10 +1391,10 @@
 
     if (products.length === 0) return;
 
-    var html = '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:0 auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;">\n<tr>\n';
-    html += buildProductCell(products[0], colors);
+    var html = '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:4px auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;">\n<tr>\n';
+    html += buildProductCell(products[0], colors, 4);
     if (products.length > 1) {
-      html += '\n' + buildProductCell(products[1], colors);
+      html += '\n' + buildProductCell(products[1], colors, 4);
     } else {
       html += '\n<td width="284" style="width:284px;"></td>';
     }
