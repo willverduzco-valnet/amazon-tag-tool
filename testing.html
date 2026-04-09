@@ -1092,10 +1092,10 @@
       var right = (p + 1 < products.length && !sectionLabels[products[p + 1].defIndex]) ? products[p + 1] : null;
 
       html += '<tr>\n';
-      html += buildProductCell(left, colors);
+      html += buildProductCell(left, colors, 4);
 
       if (right) {
-        html += '\n' + buildProductCell(right, colors);
+        html += '\n' + buildProductCell(right, colors, 4);
         p++; // skip next since we consumed it
       } else {
         html += '\n<td width="284" style="width:284px;"></td>';
