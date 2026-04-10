@@ -1290,7 +1290,26 @@
     if (!file) return;
     var reader = new FileReader();
     reader.onload = function(ev) {
-      var lines = ev.target.result.split('\n');
+      // Split CSV into logical rows, respecting multi-line quoted fields
+      var text = ev.target.result;
+      var lines = [];
+      var cur = '';
+      var inQ = false;
+      for (var ci = 0; ci < text.length; ci++) {
+        var ch = text[ci];
+        if (inQ) {
+          if (ch === '"') {
+            if (text[ci + 1] === '"') { cur += '""'; ci++; }
+            else { cur += ch; inQ = false; }
+          } else { cur += ch; }
+        } else {
+          if (ch === '"') { cur += ch; inQ = true; }
+          else if (ch === '\n') { lines.push(cur); cur = ''; }
+          else if (ch === '\r') { /* skip */ }
+          else { cur += ch; }
+        }
+      }
+      if (cur) lines.push(cur);
       // Skip header row
       var start = (lines[0] && lines[0].indexOf('field') === 0) ? 1 : 0;
 
