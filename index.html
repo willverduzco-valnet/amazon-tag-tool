@@ -1345,7 +1345,7 @@
           else if (field === 'introTitle') document.getElementById('nlIntroTitle').value = val;
           else if (field === 'introText') document.getElementById('nlIntroText').value = val;
           else if (field === 'bannerPosition') document.getElementById('nlBannerPosition').value = val;
-          else if (field === 'pollHtml') document.getElementById('nlPollHtml').value = val;
+          else if (field === 'pollHtml') { console.log('POLL IMPORT length=' + val.length, 'first100=' + val.substring(0,100)); document.getElementById('nlPollHtml').value = val; }
           else if (field === 'pollPosition') document.getElementById('nlPollPosition').value = val;
           else if (field === 'sponsoredImg') document.getElementById('nlSponsoredImg').value = val;
           else if (field === 'sponsoredHeadline') document.getElementById('nlSponsoredHeadline').value = val;
