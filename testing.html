@@ -83,6 +83,7 @@
     <button data-tab="cleaner">URL Cleaner</button>
     <button data-tab="newsletter">Deals NL Builder</button>
     <button data-tab="dealblock">Deal Block</button>
+    <button data-tab="sponsorblock">Sponsor Block</button>
   </div>
 
   <!-- TAB 1: Amazon URL Tagger -->
@@ -226,6 +227,68 @@
           <iframe id="dbPreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:400px;background:#fff;"></iframe>
         </div>
         <button class="copy-btn" id="dbCopyBtn" style="margin-top:12px">Copy HTML</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: Sponsor Block -->
+  <div class="tab-content" id="tab-sponsorblock">
+    <div class="card">
+      <h2 class="section-title">Sponsor Block Generator</h2>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Generates a standalone sponsored ad block for injection into any newsletter send.</p>
+
+      <div class="selectors" style="margin-top:0">
+        <div class="selector-group">
+          <label>Brand</label>
+          <div class="btn-group" id="sbBrandGroup">
+            <button data-val="htg" class="active">HTG</button>
+            <button data-val="xda">XDA</button>
+            <button data-val="muo">MUO</button>
+            <button data-val="ap">AP</button>
+            <button data-val="pl">PL</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label>Banner Image URL</label>
+        <input type="text" id="sbImg" placeholder="https://...">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Headline</label>
+        <input type="text" id="sbHeadline" placeholder="e.g. Your Ad Here">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Body Text</label>
+        <input type="text" id="sbBody" placeholder="e.g. Horizontal sponsor placement — full-width banner area for partner content.">
+      </div>
+      <div class="field-row-inline" style="margin-top:12px">
+        <div>
+          <label>CTA Text</label>
+          <input type="text" id="sbCta" placeholder="e.g. LEARN MORE">
+        </div>
+        <div>
+          <label>CTA Link</label>
+          <input type="text" id="sbLink" placeholder="https://...">
+        </div>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="sbGenerateBtn">Generate Sponsor Block HTML</button>
+
+    <div id="sbOutput" style="display:none">
+      <div class="card">
+        <div class="btn-group" id="sbOutputToggle" style="margin-bottom:16px">
+          <button data-val="code" class="active">HTML Code</button>
+          <button data-val="preview">Preview</button>
+        </div>
+        <div id="sbOutputCode">
+          <textarea id="sbOutputCodeArea" readonly style="min-height:200px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:#f9f9fb;"></textarea>
+        </div>
+        <div id="sbOutputPreview" style="display:none">
+          <iframe id="sbPreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:300px;background:#fff;"></iframe>
+        </div>
+        <button class="copy-btn" id="sbCopyBtn" style="margin-top:12px">Copy HTML</button>
       </div>
     </div>
   </div>
@@ -1448,6 +1511,81 @@
   document.getElementById('dbCopyBtn').addEventListener('click', function() {
     var btn = this;
     navigator.clipboard.writeText(document.getElementById('dbOutputCodeArea').value).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
+    });
+  });
+
+  // =============================================
+  // Sponsor Block Generator
+  // =============================================
+  var sbBrand = 'htg';
+  initToggle('sbBrandGroup', function(v) { sbBrand = v; });
+
+  function buildSponsoredBlock(img, headline, body, cta, link, ctaColor) {
+    var html = '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:4px auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td style="padding:4px;">\n';
+    html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e5e5e7;border-radius:12px;border-collapse:separate;">\n';
+    if (img) {
+      html += '<tr><td align="center" style="padding:0;border:none;">';
+      var imgTag = '<img alt="' + esc(headline || 'Sponsored') + '" src="' + esc(img) + '" width="100%" style="display:block;border-radius:12px 12px 0 0;" />';
+      if (link) html += '<a href="' + esc(link) + '" rel="noopener noreferrer" target="_blank">' + imgTag + '</a>';
+      else html += imgTag;
+      html += '</td></tr>\n';
+    }
+    html += '<tr><td align="center" style="padding:20px;border:none;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;">';
+    html += '<p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin:0 0 6px 0;">SPONSORED</p>';
+    if (headline) html += '<p style="font-size:18px;font-weight:700;color:#1d1d1f;margin:0 0 6px 0;">' + esc(headline) + '</p>';
+    if (body) html += '<p style="font-size:14px;color:#666;font-style:italic;margin:0 0 14px 0;">' + esc(body) + '</p>';
+    if (cta && link) {
+      html += emailButton(esc(link), esc(cta), ctaColor, 6);
+    } else if (cta) {
+      html += '<span style="display:inline-block;background-color:' + ctaColor + ';color:#ffffff;font-size:13px;font-weight:700;padding:10px 24px;border-radius:6px;">' + esc(cta) + '</span>';
+    }
+    html += '</td></tr>\n</table>\n';
+    html += '</td></tr></table>';
+    return html;
+  }
+
+  document.getElementById('sbGenerateBtn').addEventListener('click', function() {
+    var colors = brandColors[sbBrand] || brandColors.htg;
+    var img = document.getElementById('sbImg').value.trim();
+    var headline = document.getElementById('sbHeadline').value.trim();
+    var body = document.getElementById('sbBody').value.trim();
+    var cta = document.getElementById('sbCta').value.trim();
+    var link = document.getElementById('sbLink').value.trim();
+
+    if (!img && !headline && !body) return;
+
+    var html = buildSponsoredBlock(img, headline, body, cta, link, colors.cta);
+
+    document.getElementById('sbOutputCodeArea').value = html;
+    document.getElementById('sbOutput').style.display = 'block';
+
+    var frame = document.getElementById('sbPreviewFrame');
+    var previewHtml = '<!DOCTYPE html><html><head><style>'
+      + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:24px;max-width:600px;color:#1d1d1f;line-height:1.5;}'
+      + 'img{max-width:100%;height:auto;}'
+      + 'table{border-spacing:0;border-collapse:separate;}'
+      + '</style></head><body>' + html + '</body></html>';
+    frame.srcdoc = previewHtml;
+    frame.onload = function() {
+      try { frame.style.height = frame.contentDocument.body.scrollHeight + 40 + 'px'; } catch(e) {}
+    };
+  });
+
+  document.getElementById('sbOutputToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    var isPreview = e.target.dataset.val === 'preview';
+    document.getElementById('sbOutputPreview').style.display = isPreview ? 'block' : 'none';
+    document.getElementById('sbOutputCode').style.display = isPreview ? 'none' : 'block';
+  });
+
+  document.getElementById('sbCopyBtn').addEventListener('click', function() {
+    var btn = this;
+    navigator.clipboard.writeText(document.getElementById('sbOutputCodeArea').value).then(function() {
       btn.textContent = 'Copied!';
       btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
