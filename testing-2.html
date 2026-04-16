@@ -311,7 +311,7 @@
           <label class="cleaner-option"><input type="checkbox" id="scColorDefault" checked> Orange (#e87400)</label>
           <label class="cleaner-option"><input type="checkbox" id="scColorHtg"> HTG Accent (#f7941d)</label>
           <label class="cleaner-option"><input type="checkbox" id="scColorBrand"> Brand Accent</label>
-          <label class="cleaner-option"><input type="checkbox" id="scColorCustom"> Custom: <input type="text" id="scCustomColor" placeholder="#hex" value="#333333" style="width:80px;padding:4px 8px;font-size:13px;font-family:monospace;"></label>
+          <label class="cleaner-option"><input type="checkbox" id="scColorCustom"> Custom: <input type="color" id="scCustomColor" value="#333333" style="width:36px;height:28px;border:1.5px solid #d2d2d7;border-radius:6px;cursor:pointer;padding:2px;"> <input type="text" id="scCustomColorText" value="#333333" style="width:70px;padding:4px 8px;font-size:12px;font-family:monospace;"></label>
         </div>
       </div>
 
@@ -1696,6 +1696,14 @@
   };
 
   // CSV import for showcase
+  // Sync color picker and text input
+  document.getElementById('scCustomColor').addEventListener('input', function() {
+    document.getElementById('scCustomColorText').value = this.value;
+  });
+  document.getElementById('scCustomColorText').addEventListener('input', function() {
+    if (/^#[0-9a-fA-F]{6}$/.test(this.value)) document.getElementById('scCustomColor').value = this.value;
+  });
+
   document.getElementById('scImportCsvBtn').addEventListener('click', function() {
     document.getElementById('scImportCsvFile').click();
   });
@@ -1793,7 +1801,7 @@
 
     var html = '';
 
-    var customColor = document.getElementById('scCustomColor').value.trim() || '#333333';
+    var customColor = document.getElementById('scCustomColorText').value.trim() || document.getElementById('scCustomColor').value || '#333333';
 
     scenarios.forEach(function(scenario) {
       var scenarioLabel, scenarioColor;
