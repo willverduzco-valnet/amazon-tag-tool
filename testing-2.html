@@ -84,6 +84,7 @@
     <button data-tab="newsletter">Deals NL Builder</button>
     <button data-tab="dealblock">Deal Block</button>
     <button data-tab="sponsorblock">Sponsor Block</button>
+    <button data-tab="showcase">Showcase</button>
   </div>
 
   <!-- TAB 1: Amazon URL Tagger -->
@@ -293,6 +294,63 @@
     </div>
   </div>
 
+  <!-- TAB 6: Brand Showcase -->
+  <div class="tab-content" id="tab-showcase">
+    <div class="card">
+      <h2 class="section-title">Brand Showcase</h2>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Generates a preview of urgency banners and product cards across all 5 brands. Leave products empty for placeholders.</p>
+
+      <div class="field-row">
+        <label>Urgency Banner Text</label>
+        <input type="text" id="scBannerText" placeholder="e.g. FLASH DEALS — These prices expire in 24 hours!" value="FLASH DEALS — These prices expire in 24 hours!">
+      </div>
+    </div>
+
+    <div class="card product-card" id="scCard1">
+      <span class="product-num">Product 1 (optional override)</span>
+      <div class="field-row"><label>Product Title</label><input type="text" class="sc-title" placeholder="Leave empty for placeholder"></div>
+      <div class="field-row-inline">
+        <div><label>Image URL</label><input type="text" class="sc-img" placeholder="https://..."></div>
+      </div>
+      <div class="field-row-inline">
+        <div><label>Current Price</label><input type="text" class="sc-price" placeholder="e.g. 49"></div>
+        <div><label>Original Price</label><input type="text" class="sc-orig-price" placeholder="e.g. 99"></div>
+        <div><label>CTA Text</label><input type="text" class="sc-cta" placeholder="GET DEAL" value="GET DEAL"></div>
+      </div>
+    </div>
+
+    <div class="card product-card" id="scCard2">
+      <span class="product-num">Product 2 (optional override)</span>
+      <div class="field-row"><label>Product Title</label><input type="text" class="sc-title" placeholder="Leave empty for placeholder"></div>
+      <div class="field-row-inline">
+        <div><label>Image URL</label><input type="text" class="sc-img" placeholder="https://..."></div>
+      </div>
+      <div class="field-row-inline">
+        <div><label>Current Price</label><input type="text" class="sc-price" placeholder="e.g. 149"></div>
+        <div><label>Original Price</label><input type="text" class="sc-orig-price" placeholder="e.g. 299"></div>
+        <div><label>CTA Text</label><input type="text" class="sc-cta" placeholder="GET DEAL" value="GET DEAL"></div>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="scGenerateBtn">Generate Brand Showcase</button>
+
+    <div id="scOutput" style="display:none">
+      <div class="card">
+        <div class="btn-group" id="scOutputToggle" style="margin-bottom:16px">
+          <button data-val="code" class="active">HTML Code</button>
+          <button data-val="preview">Preview</button>
+        </div>
+        <div id="scOutputCode">
+          <textarea id="scOutputCodeArea" readonly style="min-height:300px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:#f9f9fb;"></textarea>
+        </div>
+        <div id="scOutputPreview" style="display:none">
+          <iframe id="scPreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:800px;background:#fff;"></iframe>
+        </div>
+        <button class="copy-btn" id="scCopyBtn" style="margin-top:12px">Copy HTML</button>
+      </div>
+    </div>
+  </div>
+
   <!-- TAB 2: Deals Newsletter Builder -->
   <div class="tab-content" id="tab-newsletter">
     <div class="card">
@@ -321,6 +379,14 @@
       <div class="field-row">
         <label>Urgency Banner (optional)</label>
         <input type="text" id="nlUrgencyBanner" placeholder="e.g. FLASH DEALS — These prices expire in 24 hours!">
+      </div>
+      <div class="field-row" style="margin-top:8px">
+        <label>Banner Color</label>
+        <div class="btn-group" id="nlBannerColorGroup">
+          <button data-val="default" class="active">Orange</button>
+          <button data-val="htg">HTG Accent</button>
+          <button data-val="brand">Brand Accent</button>
+        </div>
       </div>
       <div class="field-row" style="margin-top:12px">
         <label>Intro Title</label>
@@ -900,6 +966,8 @@
   // =============================================
   var nlBrand = 'htg';
   initToggle('nlBrandGroup', function(v) { nlBrand = v; });
+  var nlBannerColorMode = 'default';
+  initToggle('nlBannerColorGroup', function(v) { nlBannerColorMode = v; });
 
   var productDefs = [
     { label: 'Deal of the Day', cls: 'deal-of-day' },
@@ -1074,8 +1142,11 @@
 
     // Urgency banner
     if (urgencyText) {
+      var bannerColor = '#e87400';
+      if (nlBannerColorMode === 'htg') bannerColor = brandColors.htg.cta;
+      else if (nlBannerColorMode === 'brand') bannerColor = colors.cta;
       html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;"><tr>';
-      html += '<td align="center" bgcolor="#e87400" style="background-color:#e87400;padding:12px 16px;border-radius:8px;">';
+      html += '<td align="center" bgcolor="' + bannerColor + '" style="background-color:' + bannerColor + ';padding:12px 16px;border-radius:8px;">';
       html += '<span style="color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;">' + esc(urgencyText) + '</span>';
       html += '</td></tr></table>\n\n';
     }
@@ -1305,6 +1376,7 @@
     var globals = [
       ['brand', '', nlBrand],
       ['urgencyBanner', '', document.getElementById('nlUrgencyBanner').value],
+      ['bannerColorMode', '', nlBannerColorMode],
       ['introTitle', '', document.getElementById('nlIntroTitle').value],
       ['introText', '', document.getElementById('nlIntroText').value],
       ['bannerPosition', '', document.getElementById('nlBannerPosition').value],
@@ -1405,6 +1477,11 @@
             brandBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === val); });
           }
           else if (field === 'urgencyBanner') document.getElementById('nlUrgencyBanner').value = val;
+          else if (field === 'bannerColorMode') {
+            nlBannerColorMode = val || 'default';
+            var bcBtns = document.getElementById('nlBannerColorGroup').querySelectorAll('button');
+            bcBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === nlBannerColorMode); });
+          }
           else if (field === 'introTitle') document.getElementById('nlIntroTitle').value = val;
           else if (field === 'introText') document.getElementById('nlIntroText').value = val;
           else if (field === 'bannerPosition') document.getElementById('nlBannerPosition').value = val;
@@ -1586,6 +1663,97 @@
   document.getElementById('sbCopyBtn').addEventListener('click', function() {
     var btn = this;
     navigator.clipboard.writeText(document.getElementById('sbOutputCodeArea').value).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
+    });
+  });
+
+  // =============================================
+  // Brand Showcase Generator
+  // =============================================
+  var brandNames = { htg: 'How-To Geek', xda: 'XDA', muo: 'MakeUseOf', ap: 'Android Police', pl: 'Pocket-lint' };
+  var brandKeys = ['htg', 'xda', 'muo', 'ap', 'pl'];
+
+  document.getElementById('scGenerateBtn').addEventListener('click', function() {
+    var bannerText = document.getElementById('scBannerText').value.trim() || 'FLASH DEALS — These prices expire in 24 hours!';
+    var cards = [document.getElementById('scCard1'), document.getElementById('scCard2')];
+
+    // Build product data from inputs or use placeholders
+    var products = [];
+    cards.forEach(function(card, i) {
+      var title = card.querySelector('.sc-title').value.trim();
+      var img = card.querySelector('.sc-img').value.trim();
+      var price = card.querySelector('.sc-price').value.trim();
+      var origPrice = card.querySelector('.sc-orig-price').value.trim();
+      var cta = card.querySelector('.sc-cta').value.trim() || 'GET DEAL';
+      if (title || img || price) {
+        products.push({ title: title || 'Sample Product ' + (i + 1), img: img, price: price || (i === 0 ? '49' : '149'), origPrice: origPrice || (i === 0 ? '99' : '299'), cta: cta, tagged: '#', url: '' });
+      }
+    });
+    // Fallback to placeholders
+    if (products.length === 0) {
+      products = [
+        { title: 'Sample Product A', img: '', price: '49', origPrice: '99', cta: 'GET DEAL', tagged: '#', url: '' },
+        { title: 'Sample Product B', img: '', price: '149', origPrice: '299', cta: 'GET DEAL', tagged: '#', url: '' }
+      ];
+    }
+    // Pad to 2 if only 1
+    if (products.length === 1) {
+      products.push({ title: 'Sample Product B', img: '', price: '149', origPrice: '299', cta: 'GET DEAL', tagged: '#', url: '' });
+    }
+
+    var html = '';
+
+    brandKeys.forEach(function(key) {
+      var colors = brandColors[key];
+      var name = brandNames[key];
+
+      // Brand section header
+      html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:24px auto 8px;"><tr>';
+      html += '<td align="center" style="padding:8px 0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:16px;font-weight:700;color:#1d1d1f;border-bottom:2px solid ' + colors.cta + ';">' + esc(name) + '</td>';
+      html += '</tr></table>\n';
+
+      // Urgency banner in brand color
+      html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:4px auto;"><tr>';
+      html += '<td align="center" bgcolor="' + colors.cta + '" style="background-color:' + colors.cta + ';padding:12px 16px;border-radius:8px;">';
+      html += '<span style="color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;">' + esc(bannerText) + '</span>';
+      html += '</td></tr></table>\n';
+
+      // Product row
+      html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:4px auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;">\n<tr>\n';
+      html += buildProductCell(products[0], colors, 4);
+      html += '\n' + buildProductCell(products[1], colors, 4);
+      html += '\n</tr>\n</table>\n\n';
+    });
+
+    document.getElementById('scOutputCodeArea').value = html;
+    document.getElementById('scOutput').style.display = 'block';
+
+    var frame = document.getElementById('scPreviewFrame');
+    var previewHtml = '<!DOCTYPE html><html><head><style>'
+      + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:24px;max-width:600px;color:#1d1d1f;line-height:1.5;}'
+      + 'img{max-width:100%;height:auto;}'
+      + 'table{border-spacing:0;border-collapse:separate;}'
+      + '</style></head><body>' + html + '</body></html>';
+    frame.srcdoc = previewHtml;
+    frame.onload = function() {
+      try { frame.style.height = frame.contentDocument.body.scrollHeight + 40 + 'px'; } catch(e) {}
+    };
+  });
+
+  document.getElementById('scOutputToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    var isPreview = e.target.dataset.val === 'preview';
+    document.getElementById('scOutputPreview').style.display = isPreview ? 'block' : 'none';
+    document.getElementById('scOutputCode').style.display = isPreview ? 'none' : 'block';
+  });
+
+  document.getElementById('scCopyBtn').addEventListener('click', function() {
+    var btn = this;
+    navigator.clipboard.writeText(document.getElementById('scOutputCodeArea').value).then(function() {
       btn.textContent = 'Copied!';
       btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
