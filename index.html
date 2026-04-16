@@ -1072,10 +1072,10 @@
     html += '  .nl-save-badge { font-size:10px !important; padding:2px 6px !important; line-height:1 !important; vertical-align:baseline !important; }\n';
     html += '</style>\n';
 
-    // Urgency banner
+    // Urgency banner (uses brand accent color)
     if (urgencyText) {
       html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;"><tr>';
-      html += '<td align="center" bgcolor="#e87400" style="background-color:#e87400;padding:12px 16px;border-radius:8px;">';
+      html += '<td align="center" bgcolor="' + colors.cta + '" style="background-color:' + colors.cta + ';padding:12px 16px;border-radius:8px;">';
       html += '<span style="color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;">' + esc(urgencyText) + '</span>';
       html += '</td></tr></table>\n\n';
     }
