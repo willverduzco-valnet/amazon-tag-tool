@@ -311,6 +311,7 @@
           <label class="cleaner-option"><input type="checkbox" id="scColorDefault" checked> Orange (#e87400)</label>
           <label class="cleaner-option"><input type="checkbox" id="scColorHtg"> HTG Accent (#f7941d)</label>
           <label class="cleaner-option"><input type="checkbox" id="scColorBrand"> Brand Accent</label>
+          <label class="cleaner-option"><input type="checkbox" id="scColorCustom"> Custom: <input type="text" id="scCustomColor" placeholder="#hex" value="#333333" style="width:80px;padding:4px 8px;font-size:13px;font-family:monospace;"></label>
         </div>
       </div>
 
@@ -1787,12 +1788,22 @@
     if (document.getElementById('scColorDefault').checked) scenarios.push('default');
     if (document.getElementById('scColorHtg').checked) scenarios.push('htg');
     if (document.getElementById('scColorBrand').checked) scenarios.push('brand');
+    if (document.getElementById('scColorCustom').checked) scenarios.push('custom');
     if (scenarios.length === 0) scenarios = ['default'];
 
     var html = '';
 
+    var customColor = document.getElementById('scCustomColor').value.trim() || '#333333';
+
     scenarios.forEach(function(scenario) {
-      var scenarioLabel = colorScenarios[scenario].label;
+      var scenarioLabel, scenarioColor;
+      if (scenario === 'custom') {
+        scenarioLabel = 'Custom (' + customColor + ')';
+        scenarioColor = customColor;
+      } else {
+        scenarioLabel = colorScenarios[scenario].label;
+        scenarioColor = colorScenarios[scenario].color;
+      }
 
       // Scenario header
       if (scenarios.length > 1) {
@@ -1804,7 +1815,7 @@
       brandKeys.forEach(function(key) {
         var colors = brandColors[key];
         var name = brandNames[key];
-        var bannerColor = colorScenarios[scenario].color || colors.cta;
+        var bannerColor = scenarioColor || colors.cta;
 
         // Brand label
         html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:20px auto 4px;"><tr>';
