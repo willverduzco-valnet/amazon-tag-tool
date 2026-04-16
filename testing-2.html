@@ -298,11 +298,25 @@
   <div class="tab-content" id="tab-showcase">
     <div class="card">
       <h2 class="section-title">Brand Showcase</h2>
-      <p style="font-size:13px;color:#888;margin-bottom:16px;">Generates a preview of urgency banners and product cards across all 5 brands. Leave products empty for placeholders.</p>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Generates a preview of urgency banners and product cards across all 5 brands. Select color scenarios to compare, and optionally import a newsletter CSV to pull in the first 2 deals.</p>
 
       <div class="field-row">
         <label>Urgency Banner Text</label>
         <input type="text" id="scBannerText" placeholder="e.g. FLASH DEALS — These prices expire in 24 hours!" value="FLASH DEALS — These prices expire in 24 hours!">
+      </div>
+
+      <div class="field-row" style="margin-top:12px">
+        <label>Banner Color Scenarios (select one or more)</label>
+        <div class="cleaner-options">
+          <label class="cleaner-option"><input type="checkbox" id="scColorDefault" checked> Orange (#e87400)</label>
+          <label class="cleaner-option"><input type="checkbox" id="scColorHtg"> HTG Accent (#f7941d)</label>
+          <label class="cleaner-option"><input type="checkbox" id="scColorBrand"> Brand Accent</label>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <button class="generate-btn" id="scImportCsvBtn" style="background:#555;font-size:13px;padding:10px;margin:0;">Import CSV (first 2 deals)</button>
+        <input type="file" id="scImportCsvFile" accept=".csv" style="display:none;">
       </div>
     </div>
 
@@ -1674,12 +1688,73 @@
   // =============================================
   var brandNames = { htg: 'How-To Geek', xda: 'XDA', muo: 'MakeUseOf', ap: 'Android Police', pl: 'Pocket-lint' };
   var brandKeys = ['htg', 'xda', 'muo', 'ap', 'pl'];
+  var colorScenarios = {
+    'default': { label: 'Orange', color: '#e87400' },
+    'htg': { label: 'HTG Accent', color: brandColors.htg.cta },
+    'brand': { label: 'Brand Accent', color: null } // null = use per-brand
+  };
 
-  document.getElementById('scGenerateBtn').addEventListener('click', function() {
-    var bannerText = document.getElementById('scBannerText').value.trim() || 'FLASH DEALS — These prices expire in 24 hours!';
+  // CSV import for showcase
+  document.getElementById('scImportCsvBtn').addEventListener('click', function() {
+    document.getElementById('scImportCsvFile').click();
+  });
+  document.getElementById('scImportCsvFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      // Reuse the char-by-char CSV row splitter
+      var text = ev.target.result;
+      var lines = [];
+      var cur = '';
+      var inQ = false;
+      for (var ci = 0; ci < text.length; ci++) {
+        var ch = text[ci];
+        if (inQ) {
+          if (ch === '"') {
+            if (text[ci + 1] === '"') { cur += '""'; ci++; }
+            else { cur += ch; inQ = false; }
+          } else { cur += ch; }
+        } else {
+          if (ch === '"') { cur += ch; inQ = true; }
+          else if (ch === '\n') { lines.push(cur); cur = ''; }
+          else if (ch === '\r') { /* skip */ }
+          else { cur += ch; }
+        }
+      }
+      if (cur) lines.push(cur);
+
+      var start = (lines[0] && lines[0].indexOf('field') === 0) ? 1 : 0;
+      var slotData = {};
+      for (var i = start; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        var cols = csvParseLine(lines[i]);
+        var field = cols[0], slot = cols[1], val = cols[2] || '';
+        if (slot && parseInt(slot) <= 2) {
+          if (!slotData[slot]) slotData[slot] = {};
+          slotData[slot][field] = val;
+        }
+      }
+
+      // Populate showcase cards from first 2 slots
+      var scCards = [document.getElementById('scCard1'), document.getElementById('scCard2')];
+      ['1', '2'].forEach(function(s, idx) {
+        var d = slotData[s];
+        if (!d) return;
+        var card = scCards[idx];
+        if (d.title) card.querySelector('.sc-title').value = d.title;
+        if (d.img) card.querySelector('.sc-img').value = d.img;
+        if (d.price) card.querySelector('.sc-price').value = d.price;
+        if (d.origPrice) card.querySelector('.sc-orig-price').value = d.origPrice;
+        if (d.cta) card.querySelector('.sc-cta').value = d.cta;
+      });
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  function scGetProducts() {
     var cards = [document.getElementById('scCard1'), document.getElementById('scCard2')];
-
-    // Build product data from inputs or use placeholders
     var products = [];
     cards.forEach(function(card, i) {
       var title = card.querySelector('.sc-title').value.trim();
@@ -1691,40 +1766,63 @@
         products.push({ title: title || 'Sample Product ' + (i + 1), img: img, price: price || (i === 0 ? '49' : '149'), origPrice: origPrice || (i === 0 ? '99' : '299'), cta: cta, tagged: '#', url: '' });
       }
     });
-    // Fallback to placeholders
     if (products.length === 0) {
       products = [
         { title: 'Sample Product A', img: '', price: '49', origPrice: '99', cta: 'GET DEAL', tagged: '#', url: '' },
         { title: 'Sample Product B', img: '', price: '149', origPrice: '299', cta: 'GET DEAL', tagged: '#', url: '' }
       ];
     }
-    // Pad to 2 if only 1
     if (products.length === 1) {
       products.push({ title: 'Sample Product B', img: '', price: '149', origPrice: '299', cta: 'GET DEAL', tagged: '#', url: '' });
     }
+    return products;
+  }
+
+  document.getElementById('scGenerateBtn').addEventListener('click', function() {
+    var bannerText = document.getElementById('scBannerText').value.trim() || 'FLASH DEALS — These prices expire in 24 hours!';
+    var products = scGetProducts();
+
+    // Get selected color scenarios
+    var scenarios = [];
+    if (document.getElementById('scColorDefault').checked) scenarios.push('default');
+    if (document.getElementById('scColorHtg').checked) scenarios.push('htg');
+    if (document.getElementById('scColorBrand').checked) scenarios.push('brand');
+    if (scenarios.length === 0) scenarios = ['default'];
 
     var html = '';
 
-    brandKeys.forEach(function(key) {
-      var colors = brandColors[key];
-      var name = brandNames[key];
+    scenarios.forEach(function(scenario) {
+      var scenarioLabel = colorScenarios[scenario].label;
 
-      // Brand section header
-      html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:24px auto 8px;"><tr>';
-      html += '<td align="center" style="padding:8px 0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:16px;font-weight:700;color:#1d1d1f;border-bottom:2px solid ' + colors.cta + ';">' + esc(name) + '</td>';
-      html += '</tr></table>\n';
+      // Scenario header
+      if (scenarios.length > 1) {
+        html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:32px auto 4px;"><tr>';
+        html += '<td align="center" style="padding:10px 0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:18px;font-weight:700;color:#1d1d1f;background:#f0f0f0;border-radius:8px;">Banner: ' + esc(scenarioLabel) + '</td>';
+        html += '</tr></table>\n';
+      }
 
-      // Urgency banner in brand color
-      html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:4px auto;"><tr>';
-      html += '<td align="center" bgcolor="' + colors.cta + '" style="background-color:' + colors.cta + ';padding:12px 16px;border-radius:8px;">';
-      html += '<span style="color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;">' + esc(bannerText) + '</span>';
-      html += '</td></tr></table>\n';
+      brandKeys.forEach(function(key) {
+        var colors = brandColors[key];
+        var name = brandNames[key];
+        var bannerColor = colorScenarios[scenario].color || colors.cta;
 
-      // Product row
-      html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:4px auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;">\n<tr>\n';
-      html += buildProductCell(products[0], colors, 4);
-      html += '\n' + buildProductCell(products[1], colors, 4);
-      html += '\n</tr>\n</table>\n\n';
+        // Brand label
+        html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:20px auto 4px;"><tr>';
+        html += '<td align="center" style="padding:6px 0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:700;color:#888;letter-spacing:1px;border-bottom:2px solid ' + colors.cta + ';">' + esc(name.toUpperCase()) + '</td>';
+        html += '</tr></table>\n';
+
+        // Urgency banner
+        html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:4px auto;"><tr>';
+        html += '<td align="center" bgcolor="' + bannerColor + '" style="background-color:' + bannerColor + ';padding:12px 16px;border-radius:8px;">';
+        html += '<span style="color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;">' + esc(bannerText) + '</span>';
+        html += '</td></tr></table>\n';
+
+        // Product row
+        html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:4px auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;">\n<tr>\n';
+        html += buildProductCell(products[0], colors, 4);
+        html += '\n' + buildProductCell(products[1], colors, 4);
+        html += '\n</tr>\n</table>\n\n';
+      });
     });
 
     document.getElementById('scOutputCodeArea').value = html;
