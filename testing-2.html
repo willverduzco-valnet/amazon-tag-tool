@@ -1247,13 +1247,11 @@
     if (introTitle) html += '<h3>' + esc(introTitle) + '</h3>\n';
     if (introText) html += esc(introText) + '&nbsp;\n\n';
 
-    // Banner HTML — Deals Center CTA block for HTG/XDA (ticker + explore button)
+    // Banner HTML — custom imported HTML (HTG/XDA) or simple image banner fallback
     var bannerHtml = '';
     var customBannerHtml = document.getElementById('nlCustomBannerHtml').value.trim();
     if (customBannerHtml && (nlBrand === 'htg' || nlBrand === 'xda')) {
       bannerHtml = customBannerHtml;
-    } else if (header && (nlBrand === 'htg' || nlBrand === 'xda')) {
-      bannerHtml = buildDealsCtaBlock(nlBrand, header.link, colors.cta);
     } else if (header) {
       // Fallback: simple image banner for any brand with a header but no CTA block defined
       bannerHtml += '<tr><td colspan="2" style="padding:8px;">';
