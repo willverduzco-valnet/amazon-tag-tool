@@ -337,6 +337,14 @@
           <span style="font-size:13px;color:#888;">"end" or a row number (e.g. 2 = after 2nd row)</span>
         </div>
       </div>
+      <div class="field-row" style="margin-top:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <label style="margin-bottom:0;">Custom Banner HTML (HTG/XDA — overrides generated banner)</label>
+          <button class="generate-btn" id="nlBannerImportBtn" style="background:#555;font-size:11px;padding:4px 10px;margin:0;width:auto;">Import .html</button>
+          <input type="file" id="nlBannerImportFile" accept=".html,.htm,.txt" style="display:none;">
+        </div>
+        <textarea id="nlCustomBannerHtml" rows="3" placeholder="Paste designer's inline-style banner HTML here, or use Import..." style="margin-top:6px;"></textarea>
+      </div>
     </div>
 
     <div class="card" id="pollBlockCard">
@@ -976,6 +984,7 @@
     }
 
     var html = '';
+    html += '<tr><td colspan="2" style="padding: 12px 8px; width: 100%; max-width: 100%; min-width: 0; overflow: hidden; vertical-align: top">\n';
     html += '<style type="text/css">\n';
     html += '@keyframes deals-cta-pulse { 0%, 100% { box-shadow: 0 0 0 0 ' + pulseColor + '; } 50% { box-shadow: 0 0 0 10px rgba(247, 148, 29, 0); } }\n';
     html += '@keyframes deals-cta-ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }\n';
@@ -1006,6 +1015,7 @@
     html += '</td></tr>\n';
     html += '</tbody></table>\n';
     html += '</div>\n';
+    html += '</td></tr>\n';
     return html;
   }
 
@@ -1148,9 +1158,11 @@
 
     // Banner HTML — Deals Center CTA block for HTG/XDA
     var bannerHtml = '';
-    if (header && (nlBrand === 'htg' || nlBrand === 'xda')) {
-      // Wrap with same pattern as poll block for consistent Gmail rendering
-      bannerHtml = '<tr><td colspan="2" style="padding:8px 0;">' + buildDealsCtaBlock(nlBrand, header.link, colors.cta) + '</td></tr>\n';
+    var customBannerHtml = document.getElementById('nlCustomBannerHtml').value.trim();
+    if (customBannerHtml && (nlBrand === 'htg' || nlBrand === 'xda')) {
+      bannerHtml = customBannerHtml;
+    } else if (header && (nlBrand === 'htg' || nlBrand === 'xda')) {
+      bannerHtml = buildDealsCtaBlock(nlBrand, header.link, colors.cta);
     } else if (header) {
       bannerHtml += '<tr><td colspan="2" style="padding:8px;">';
       bannerHtml += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
@@ -1330,6 +1342,21 @@
     e.target.value = '';
   });
 
+  // Custom banner HTML file import
+  document.getElementById('nlBannerImportBtn').addEventListener('click', function() {
+    document.getElementById('nlBannerImportFile').click();
+  });
+  document.getElementById('nlBannerImportFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      document.getElementById('nlCustomBannerHtml').value = ev.target.result;
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
   // =============================================
   // Newsletter CSV Export / Import
   // =============================================
@@ -1373,6 +1400,7 @@
       ['introTitle', '', document.getElementById('nlIntroTitle').value],
       ['introText', '', document.getElementById('nlIntroText').value],
       ['bannerPosition', '', document.getElementById('nlBannerPosition').value],
+      ['customBannerHtml', '', document.getElementById('nlCustomBannerHtml').value],
       ['pollHtml', '', document.getElementById('nlPollHtml').value],
       ['pollPosition', '', document.getElementById('nlPollPosition').value],
       ['sponsoredImg', '', document.getElementById('nlSponsoredImg').value],
@@ -1473,6 +1501,7 @@
           else if (field === 'introTitle') document.getElementById('nlIntroTitle').value = val;
           else if (field === 'introText') document.getElementById('nlIntroText').value = val;
           else if (field === 'bannerPosition') document.getElementById('nlBannerPosition').value = val;
+          else if (field === 'customBannerHtml') document.getElementById('nlCustomBannerHtml').value = val;
           else if (field === 'pollHtml') document.getElementById('nlPollHtml').value = val;
           else if (field === 'pollPosition') document.getElementById('nlPollPosition').value = val;
           else if (field === 'sponsoredImg') document.getElementById('nlSponsoredImg').value = val;
