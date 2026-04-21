@@ -1064,7 +1064,6 @@
     }
 
     var html = '';
-    html += '<tr><td colspan="2" style="padding: 12px 8px; width: 100%; max-width: 100%; min-width: 0; overflow: hidden; vertical-align: top">\n';
     html += '<style type="text/css">\n';
     html += '@keyframes deals-cta-pulse { 0%, 100% { box-shadow: 0 0 0 0 ' + pulseColor + '; } 50% { box-shadow: 0 0 0 10px rgba(247, 148, 29, 0); } }\n';
     html += '@keyframes deals-cta-ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }\n';
@@ -1095,7 +1094,6 @@
     html += '</td></tr>\n';
     html += '</tbody></table>\n';
     html += '</div>\n';
-    html += '</td></tr>\n';
     return html;
   }
 
@@ -1242,7 +1240,8 @@
     // Banner HTML — Deals Center CTA block for HTG/XDA (ticker + explore button)
     var bannerHtml = '';
     if (header && (nlBrand === 'htg' || nlBrand === 'xda')) {
-      bannerHtml = buildDealsCtaBlock(nlBrand, header.link, colors.cta);
+      // Wrap with same pattern as poll block for consistent Gmail rendering
+      bannerHtml = '<tr><td colspan="2" style="padding:8px 0;">' + buildDealsCtaBlock(nlBrand, header.link, colors.cta) + '</td></tr>\n';
     } else if (header) {
       // Fallback: simple image banner for any brand with a header but no CTA block defined
       bannerHtml += '<tr><td colspan="2" style="padding:8px;">';
