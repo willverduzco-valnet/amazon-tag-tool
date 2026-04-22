@@ -176,6 +176,11 @@
           </div>
         </div>
       </div>
+
+      <div style="margin-top:16px">
+        <button class="generate-btn" id="dbImportCsvBtn" style="background:#555;font-size:13px;padding:10px;margin:0;">Import CSV (first 2 deals)</button>
+        <input type="file" id="dbImportCsvFile" accept=".csv" style="display:none;">
+      </div>
     </div>
 
     <div class="card product-card deal-of-day" id="dbCard1">
@@ -248,6 +253,11 @@
             <button data-val="pl">PL</button>
           </div>
         </div>
+      </div>
+
+      <div style="margin:16px 0">
+        <button class="generate-btn" id="sbImportCsvBtn" style="background:#555;font-size:13px;padding:10px;margin:0;">Import CSV (extracts sponsor fields)</button>
+        <input type="file" id="sbImportCsvFile" accept=".csv" style="display:none;">
       </div>
 
       <div class="field-row">
@@ -336,6 +346,14 @@
           <input type="text" id="nlBannerPosition" value="end" style="width:80px;text-align:center;">
           <span style="font-size:13px;color:#888;">"end" or a row number (e.g. 2 = after 2nd row)</span>
         </div>
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <label style="margin-bottom:0;">Custom Banner HTML (HTG/XDA — overrides generated banner)</label>
+          <button class="generate-btn" id="nlBannerImportBtn" style="background:#555;font-size:11px;padding:4px 10px;margin:0;width:auto;">Import .html</button>
+          <input type="file" id="nlBannerImportFile" accept=".html,.htm,.txt" style="display:none;">
+        </div>
+        <textarea id="nlCustomBannerHtml" rows="3" placeholder="Paste banner HTML or use Import HTML" style="margin-top:6px;"></textarea>
       </div>
     </div>
 
@@ -947,6 +965,70 @@
     }
   };
 
+  // Deals Center CTA block (animated ticker + explore button) for HTG/XDA
+  function buildDealsCtaBlock(brand, link, accentColor) {
+    var pulseColor = brand === 'xda' ? '#9d57e98c' : 'rgba(247, 148, 29, 0.55)';
+    var tickerItems = [
+      { badge: '$120 OFF', img: 'https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2025/03/blink-mini-2.jpg?q=49&fit=crop&w=180&h=120&dpr=2' },
+      { badge: "Editor's Pick", img: 'https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/narwal-flow-2.jpg?w=180&h=120&fit=crop', editorsPick: true },
+      { badge: '40% OFF', img: 'https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/samsung-65-inch-qled.jpg?w=180&h=120&fit=crop' },
+      { badge: '10% OFF', img: 'https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/govee-hydro-thermometer-sensor.jpg?w=180&h=120&fit=crop' },
+      { badge: 'Save $59', img: 'https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/veise-ve017-fingerprint-smart-door-lock.jpg?w=180&h=120&fit=crop' },
+      { badge: '30% OFF', img: 'https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/amazon-eero-6-mesh-wifi-system.jpg?w=180&h=120&fit=crop' }
+    ];
+
+    function renderTickerSet() {
+      var s = '<div style="display: flex; flex-direction: row; flex-shrink: 0">';
+      tickerItems.forEach(function(item) {
+        s += '<div class="deals-cta-ticker-item">';
+        if (item.editorsPick) {
+          s += '<span class="deals-cta-ticker-badge" style="background-color: ' + accentColor + '">' + item.badge + '</span>';
+        } else {
+          s += '<span class="deals-cta-ticker-badge">' + item.badge + '</span>';
+        }
+        s += '<img alt="" src="' + item.img + '" width="104" height="76" />';
+        s += '</div>';
+      });
+      s += '</div>';
+      return s;
+    }
+
+    var html = '';
+    html += '<tr><td colspan="2" style="padding: 12px 8px; width: 100%; max-width: 100%; min-width: 0; overflow: hidden; vertical-align: top">\n';
+    html += '<style type="text/css">\n';
+    html += '@keyframes deals-cta-pulse { 0%, 100% { box-shadow: 0 0 0 0 ' + pulseColor + '; } 50% { box-shadow: 0 0 0 10px rgba(247, 148, 29, 0); } }\n';
+    html += '@keyframes deals-cta-ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }\n';
+    html += '.deals-newsletter-cta-btn a { animation: deals-cta-pulse 2.2s ease-out infinite; }\n';
+    html += '.deals-cta-card-wrapper { max-width: 100%; min-width: 0; overflow: hidden; }\n';
+    html += '.deals-cta-ticker-viewport { position: relative; width: 100%; max-width: 100%; min-width: 0; height: 76px; max-height: 76px; overflow: hidden; box-sizing: border-box; }\n';
+    html += '.deals-cta-ticker-track { display: flex; flex-direction: row; width: max-content; max-width: none; animation: deals-cta-ticker 32s linear infinite; }\n';
+    html += '.deals-cta-ticker-item { position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint; }\n';
+    html += '.deals-cta-ticker-item img { display: block; width: 104px; height: 76px; object-fit: cover; -webkit-filter: blur(2px); filter: blur(2px); transform: scale(1.06); }\n';
+    html += '.deals-cta-ticker-badge { text-transform: uppercase; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 1; background-color: #2d8e3c; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif; font-size: 9px; font-weight: 800; letter-spacing: 0.4px; line-height: 1; padding: 4px 7px; border-radius: 4px; white-space: nowrap; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }\n';
+    html += '</style>\n';
+    html += '<div class="deals-cta-card-wrapper">\n';
+    html += '<table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#1d1d1f" style="width: 100%; max-width: 100%; padding: 12px 0; min-width: 0; border: 1px solid #e5e5e7; table-layout: fixed; background-color: #323336; background: linear-gradient(135deg, #323336 0%, #3f3f46 100%); border-radius: 10px; border-collapse: separate; overflow: hidden">\n';
+    html += '<tbody>\n';
+    html += '<tr><td style="padding: 0; width: 100%; max-width: 100%; min-width: 0; line-height: 0; font-size: 0; overflow: hidden">\n';
+    html += '<div class="deals-cta-ticker-viewport">\n';
+    html += '<div class="deals-cta-ticker-track">\n';
+    html += renderTickerSet();
+    html += renderTickerSet();
+    html += '</div></div></td></tr>\n';
+    html += '<tr><td style="padding: 18px 20px 6px 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif; font-size: 16px; font-weight: 700; color: #ffffff; line-height: 1.3">The savings don\'t stop here</td></tr>\n';
+    html += '<tr><td style="padding: 0 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif; font-size: 13px; color: #b0b0b5; line-height: 1.45">Browse the full collection of our editor-curated deals.</td></tr>\n';
+    html += '<tr><td align="center" style="padding: 0 20px">\n';
+    html += '<table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 1rem auto"><tbody><tr>\n';
+    html += '<td class="deals-newsletter-cta-btn">\n';
+    html += '<a href="' + link + '" rel="noopener noreferrer" style="color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif; font-size: 13px; font-weight: 700; text-decoration: none; display: inline-block; background-color: ' + accentColor + '; border-radius: 6px; padding: 11px 26px;" target="_blank">Explore the Deals Center <span style="margin-left: 4px" aria-hidden="true">→</span></a>\n';
+    html += '</td></tr></tbody></table>\n';
+    html += '</td></tr>\n';
+    html += '</tbody></table>\n';
+    html += '</div>\n';
+    html += '</td></tr>\n';
+    return html;
+  }
+
   // Email-safe button using table-based approach (works in Outlook + Gmail)
   function emailButton(href, label, bgColor, radius) {
     var c = '';
@@ -963,6 +1045,125 @@
     muo: { cta: '#c60d0d', badge: '#2d8e3c' },
     ap:  { cta: '#e01a4f', badge: '#2d8e3c' },
     pl:  { cta: '#ed1c24', badge: '#2d8e3c' }
+  };
+
+  // Default "Deals Center" CTA banner used for HTG/XDA when the Custom Banner HTML textarea is empty.
+  // Imported/pasted content in that field always overrides these.
+  var defaultCtaHtml = {
+    htg: `<tr>
+    <td colspan="2" style="padding: 12px 8px; width: 100%; max-width: 100%; min-width: 0; overflow: hidden; vertical-align: top">
+        <div style="max-width: 100%; min-width: 0; overflow: hidden">
+        <table role="presentation" width="600px" border="0" cellpadding="0" cellspacing="0" bgcolor="#323336" style="width: 600px; max-width: 100%; padding: 12px 0; min-width: 0; border: 1px solid #e5e5e7; table-layout: fixed; background-color: #323336; background: linear-gradient(135deg, #323336 0%, #3f3f46 100%); border-radius: 10px; border-collapse: separate; overflow: hidden">
+            <tbody>
+                <tr>
+                    <td style="padding: 0; width: 100%; max-width: 100%; min-width: 0; line-height: 0; font-size: 0; overflow: hidden">
+                        <div style="position: relative; width: 100%; max-width: 100%; min-width: 0; height: 76px; max-height: 76px; overflow: hidden; box-sizing: border-box">
+                            <div class="deals-cta-ticker-track" style="display: flex; flex-direction: row; width: max-content; max-width: none; transform: translateX(0px)">
+                                <div role="group" aria-label="Blurred tech product images with varying degrees of savings on each." style="display: flex; flex-direction: row; flex-shrink: 0; transform: translateX(-24px)">
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-1.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-2.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-3.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-4.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-5.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-6.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 18px 20px 6px 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; font-weight: 700; color: #ffffff; line-height: 1.3">The savings don't stop here</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #b0b0b5; line-height: 1.45">Browse the full collection of our editor-curated deals.</td>
+                </tr>
+                <tr>
+                    <td align="center" style="padding: 0 20px">
+                        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 1rem auto">
+                            <tbody>
+                                <tr>
+                                    <td class="deals-newsletter-cta-btn" align="center" bgcolor="#e87400" style="padding: 11px 26px; border-radius: 6px; background-color: #e87400">
+                                        <a href="https://www.howtogeek.com/deals/" rel="noopener noreferrer" style="color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; font-weight: 700; line-height: 1.25; text-decoration: none; display: inline-block; transition: box-shadow 0.35s ease; box-shadow: 0 0 0 0 rgba(247, 148, 29, 0.55);" target="_blank">Explore our NEW Deals Center <span style="margin-left: 4px" aria-hidden="true">&rarr;</span></a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+    </td>
+</tr>`,
+    xda: `<tr>
+    <td colspan="2" style="padding: 12px 8px; width: 100%; max-width: 100%; min-width: 0; overflow: hidden; vertical-align: top">
+        <div style="max-width: 100%; min-width: 0; overflow: hidden">
+            <table role="presentation" width="600px" border="0" cellpadding="0" cellspacing="0" bgcolor="#323336" style="width: 600px; max-width: 100%; padding: 12px 0; min-width: 0; border: 1px solid #e5e5e7; table-layout: fixed; background-color: #323336; background: linear-gradient(135deg, #323336 0%, #3f3f46 100%); border-radius: 10px; border-collapse: separate; overflow: hidden">
+                <tbody>
+                    <tr>
+                        <td style="padding: 0; width: 100%; max-width: 100%; min-width: 0; line-height: 0; font-size: 0; overflow: hidden">
+                            <div style="position: relative; width: 100%; max-width: 100%; min-width: 0; height: 76px; max-height: 76px; overflow: hidden; box-sizing: border-box">
+                                <div class="deals-cta-ticker-track" style="display: flex; flex-direction: row; width: max-content; max-width: none; transform: translateX(0px)">
+                                    <div role="group" aria-label="Blurred tech product images with varying degrees of savings on each." style="display: flex; flex-direction: row; flex-shrink: 0; transform: translateX(-24px)">
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-1.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-2.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-3.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-4.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-5-xda.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-6.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 18px 20px 6px 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; font-weight: 700; color: #ffffff; line-height: 1.3">The savings don't stop here</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #b0b0b5; line-height: 1.45">Browse the full collection of our editor-curated deals.</td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 0 20px">
+                            <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 1rem auto">
+                                <tbody>
+                                    <tr>
+                                        <td class="deals-newsletter-cta-btn" align="center" bgcolor="#6b35a5" style="padding: 11px 26px; border-radius: 6px; background-color: #6b35a5">
+                                            <a href="https://www.xda-developers.com/deals/" rel="noopener noreferrer" style="color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; font-weight: 700; line-height: 1.25; text-decoration: none; display: inline-block; transition: box-shadow 0.35s ease; box-shadow: 0 0 0 0 rgba(247, 148, 29, 0.55)" target="_blank">Explore our NEW Deals Center <span style="margin-left: 4px" aria-hidden="true">&rarr;</span></a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </td>
+</tr>`
   };
 
   function buildProductCell(data, colors, cellPad) {
@@ -1084,9 +1285,13 @@
     if (introTitle) html += '<h3>' + esc(introTitle) + '</h3>\n';
     if (introText) html += esc(introText) + '&nbsp;\n\n';
 
-    // Banner HTML (built once, inserted at configured position)
+    // Banner HTML — for HTG/XDA, use the textarea content if present, otherwise the default Deals Center CTA.
+    // Other brands fall back to the simple image banner from headerMap.
     var bannerHtml = '';
-    if (header) {
+    var customBannerHtml = document.getElementById('nlCustomBannerHtml').value.trim();
+    if (nlBrand === 'htg' || nlBrand === 'xda') {
+      bannerHtml = customBannerHtml || defaultCtaHtml[nlBrand];
+    } else if (header) {
       bannerHtml += '<tr><td colspan="2" style="padding:8px;">';
       bannerHtml += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
       bannerHtml += '<img alt="' + header.alt + '" src="' + header.img + '" width="100%" style="display:block;border-radius:12px;" />';
@@ -1265,6 +1470,21 @@
     e.target.value = '';
   });
 
+  // Custom banner HTML file import
+  document.getElementById('nlBannerImportBtn').addEventListener('click', function() {
+    document.getElementById('nlBannerImportFile').click();
+  });
+  document.getElementById('nlBannerImportFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      document.getElementById('nlCustomBannerHtml').value = ev.target.result;
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
   // =============================================
   // Newsletter CSV Export / Import
   // =============================================
@@ -1308,6 +1528,7 @@
       ['introTitle', '', document.getElementById('nlIntroTitle').value],
       ['introText', '', document.getElementById('nlIntroText').value],
       ['bannerPosition', '', document.getElementById('nlBannerPosition').value],
+      ['customBannerHtml', '', document.getElementById('nlCustomBannerHtml').value],
       ['pollHtml', '', document.getElementById('nlPollHtml').value],
       ['pollPosition', '', document.getElementById('nlPollPosition').value],
       ['sponsoredImg', '', document.getElementById('nlSponsoredImg').value],
@@ -1408,6 +1629,7 @@
           else if (field === 'introTitle') document.getElementById('nlIntroTitle').value = val;
           else if (field === 'introText') document.getElementById('nlIntroText').value = val;
           else if (field === 'bannerPosition') document.getElementById('nlBannerPosition').value = val;
+          else if (field === 'customBannerHtml') document.getElementById('nlCustomBannerHtml').value = val;
           else if (field === 'pollHtml') document.getElementById('nlPollHtml').value = val;
           else if (field === 'pollPosition') document.getElementById('nlPollPosition').value = val;
           else if (field === 'sponsoredImg') document.getElementById('nlSponsoredImg').value = val;
@@ -1436,10 +1658,82 @@
   });
 
   // =============================================
+  // Shared CSV parse helper (used by deal block & sponsor block imports)
+  // =============================================
+  function parseCsvToMap(text) {
+    var lines = [];
+    var cur = '';
+    var inQ = false;
+    for (var ci = 0; ci < text.length; ci++) {
+      var ch = text[ci];
+      if (inQ) {
+        if (ch === '"') {
+          if (text[ci + 1] === '"') { cur += '""'; ci++; }
+          else { cur += ch; inQ = false; }
+        } else { cur += ch; }
+      } else {
+        if (ch === '"') { cur += ch; inQ = true; }
+        else if (ch === '\n') { lines.push(cur); cur = ''; }
+        else if (ch === '\r') { /* skip */ }
+        else { cur += ch; }
+      }
+    }
+    if (cur) lines.push(cur);
+
+    var start = (lines[0] && lines[0].indexOf('field') === 0) ? 1 : 0;
+    var globals = {};
+    var slots = {};
+    for (var i = start; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      var cols = csvParseLine(lines[i]);
+      var field = cols[0], slot = cols[1], val = cols[2] || '';
+      if (slot) {
+        if (!slots[slot]) slots[slot] = {};
+        slots[slot][field] = val;
+      } else {
+        globals[field] = val;
+      }
+    }
+    return { globals: globals, slots: slots };
+  }
+
+  // =============================================
   // Deal Block Generator
   // =============================================
   var dbBrand = 'htg';
   initToggle('dbBrandGroup', function(v) { dbBrand = v; });
+
+  document.getElementById('dbImportCsvBtn').addEventListener('click', function() {
+    document.getElementById('dbImportCsvFile').click();
+  });
+  document.getElementById('dbImportCsvFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var data = parseCsvToMap(ev.target.result);
+      var dbCards = [document.getElementById('dbCard1'), document.getElementById('dbCard2')];
+      ['1', '2'].forEach(function(s, idx) {
+        var d = data.slots[s];
+        if (!d) return;
+        var card = dbCards[idx];
+        if (d.title != null) card.querySelector('.db-title').value = d.title;
+        if (d.url != null) card.querySelector('.db-url').value = d.url;
+        if (d.img != null) card.querySelector('.db-img').value = d.img;
+        if (d.price != null) card.querySelector('.db-price').value = d.price;
+        if (d.origPrice != null) card.querySelector('.db-orig-price').value = d.origPrice;
+        if (d.cta) card.querySelector('.db-cta').value = d.cta;
+        if (d.skipAffiliate != null) card.querySelector('.db-bypass').checked = d.skipAffiliate === '1';
+      });
+      if (data.globals.brand) {
+        dbBrand = data.globals.brand;
+        var btns = document.getElementById('dbBrandGroup').querySelectorAll('button');
+        btns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === dbBrand); });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
 
   document.getElementById('dbGenerateBtn').addEventListener('click', function() {
     var tag = getTag(dbBrand, 'newsletter');
@@ -1546,6 +1840,31 @@
     html += '</td></tr></table>';
     return html;
   }
+
+  document.getElementById('sbImportCsvBtn').addEventListener('click', function() {
+    document.getElementById('sbImportCsvFile').click();
+  });
+  document.getElementById('sbImportCsvFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var data = parseCsvToMap(ev.target.result);
+      var g = data.globals;
+      if (g.sponsoredImg != null) document.getElementById('sbImg').value = g.sponsoredImg;
+      if (g.sponsoredHeadline != null) document.getElementById('sbHeadline').value = g.sponsoredHeadline;
+      if (g.sponsoredBody != null) document.getElementById('sbBody').value = g.sponsoredBody;
+      if (g.sponsoredCta != null) document.getElementById('sbCta').value = g.sponsoredCta;
+      if (g.sponsoredLink != null) document.getElementById('sbLink').value = g.sponsoredLink;
+      if (g.brand) {
+        sbBrand = g.brand;
+        var btns = document.getElementById('sbBrandGroup').querySelectorAll('button');
+        btns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === sbBrand); });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
 
   document.getElementById('sbGenerateBtn').addEventListener('click', function() {
     var colors = brandColors[sbBrand] || brandColors.htg;
