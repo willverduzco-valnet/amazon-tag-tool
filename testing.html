@@ -1047,6 +1047,125 @@
     pl:  { cta: '#ed1c24', badge: '#2d8e3c' }
   };
 
+  // Default "Deals Center" CTA banner used for HTG/XDA when the Custom Banner HTML textarea is empty.
+  // Imported/pasted content in that field always overrides these.
+  var defaultCtaHtml = {
+    htg: `<tr>
+    <td colspan="2" style="padding: 12px 8px; width: 100%; max-width: 100%; min-width: 0; overflow: hidden; vertical-align: top">
+        <div style="max-width: 100%; min-width: 0; overflow: hidden">
+        <table role="presentation" width="600px" border="0" cellpadding="0" cellspacing="0" bgcolor="#323336" style="width: 600px; max-width: 100%; padding: 12px 0; min-width: 0; border: 1px solid #e5e5e7; table-layout: fixed; background-color: #323336; background: linear-gradient(135deg, #323336 0%, #3f3f46 100%); border-radius: 10px; border-collapse: separate; overflow: hidden">
+            <tbody>
+                <tr>
+                    <td style="padding: 0; width: 100%; max-width: 100%; min-width: 0; line-height: 0; font-size: 0; overflow: hidden">
+                        <div style="position: relative; width: 100%; max-width: 100%; min-width: 0; height: 76px; max-height: 76px; overflow: hidden; box-sizing: border-box">
+                            <div class="deals-cta-ticker-track" style="display: flex; flex-direction: row; width: max-content; max-width: none; transform: translateX(0px)">
+                                <div role="group" aria-label="Blurred tech product images with varying degrees of savings on each." style="display: flex; flex-direction: row; flex-shrink: 0; transform: translateX(-24px)">
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-1.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-2.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-3.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-4.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-5.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                    <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                        <img alt="" aria-hidden="true" src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-6.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 18px 20px 6px 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; font-weight: 700; color: #ffffff; line-height: 1.3">The savings don't stop here</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #b0b0b5; line-height: 1.45">Browse the full collection of our editor-curated deals.</td>
+                </tr>
+                <tr>
+                    <td align="center" style="padding: 0 20px">
+                        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 1rem auto">
+                            <tbody>
+                                <tr>
+                                    <td class="deals-newsletter-cta-btn" align="center" bgcolor="#e87400" style="padding: 11px 26px; border-radius: 6px; background-color: #e87400">
+                                        <a href="https://www.howtogeek.com/deals/" rel="noopener noreferrer" style="color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; font-weight: 700; line-height: 1.25; text-decoration: none; display: inline-block; transition: box-shadow 0.35s ease; box-shadow: 0 0 0 0 rgba(247, 148, 29, 0.55);" target="_blank">Explore our NEW Deals Center <span style="margin-left: 4px" aria-hidden="true">â</span></a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+    </td>
+</tr>`,
+    xda: `<tr>
+    <td colspan="2" style="padding: 12px 8px; width: 100%; max-width: 100%; min-width: 0; overflow: hidden; vertical-align: top">
+        <div style="max-width: 100%; min-width: 0; overflow: hidden">
+            <table role="presentation" width="600px" border="0" cellpadding="0" cellspacing="0" bgcolor="#323336" style="width: 600px; max-width: 100%; padding: 12px 0; min-width: 0; border: 1px solid #e5e5e7; table-layout: fixed; background-color: #323336; background: linear-gradient(135deg, #323336 0%, #3f3f46 100%); border-radius: 10px; border-collapse: separate; overflow: hidden">
+                <tbody>
+                    <tr>
+                        <td style="padding: 0; width: 100%; max-width: 100%; min-width: 0; line-height: 0; font-size: 0; overflow: hidden">
+                            <div style="position: relative; width: 100%; max-width: 100%; min-width: 0; height: 76px; max-height: 76px; overflow: hidden; box-sizing: border-box">
+                                <div class="deals-cta-ticker-track" style="display: flex; flex-direction: row; width: max-content; max-width: none; transform: translateX(0px)">
+                                    <div role="group" aria-label="Blurred tech product images with varying degrees of savings on each." style="display: flex; flex-direction: row; flex-shrink: 0; transform: translateX(-24px)">
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-1.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-2.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-3.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-4.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-5-xda.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                        <div style="position: relative; flex: 0 0 104px; width: 104px; height: 76px; margin-right: 10px; border-radius: 8px; overflow: hidden; background: #1a1a1e; contain: layout style paint">
+                                            <img alt="" aria-hidden="true" src="https://static0.xdaimages.com/wordpress/wp-content/uploads/2026/04/deals-newsletter-cta-image-6.png?w=180" width="104" height="76" style="display: block; width: 104px; height: 76px; object-fit: cover" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 18px 20px 6px 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; font-weight: 700; color: #ffffff; line-height: 1.3">The savings don't stop here</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #b0b0b5; line-height: 1.45">Browse the full collection of our editor-curated deals.</td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 0 20px">
+                            <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 1rem auto">
+                                <tbody>
+                                    <tr>
+                                        <td class="deals-newsletter-cta-btn" align="center" bgcolor="#6b35a5" style="padding: 11px 26px; border-radius: 6px; background-color: #6b35a5">
+                                            <a href="https://www.xda-developers.com/deals/" rel="noopener noreferrer" style="color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; font-weight: 700; line-height: 1.25; text-decoration: none; display: inline-block; transition: box-shadow 0.35s ease; box-shadow: 0 0 0 0 rgba(247, 148, 29, 0.55)" target="_blank">Explore our NEW Deals Center <span style="margin-left: 4px" aria-hidden="true">â</span></a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </td>
+</tr>`
+  };
+
   function buildProductCell(data, colors, cellPad) {
     cellPad = cellPad !== undefined ? cellPad : 8;
     var innerW = 284 - (cellPad * 2);
@@ -1154,10 +1273,10 @@
     html += '  .nl-save-badge { font-size:10px !important; padding:2px 6px !important; line-height:1 !important; vertical-align:baseline !important; }\n';
     html += '</style>\n';
 
-    // Urgency banner
+    // Urgency banner (uses brand accent color)
     if (urgencyText) {
       html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;"><tr>';
-      html += '<td align="center" bgcolor="#e87400" style="background-color:#e87400;padding:12px 16px;border-radius:8px;">';
+      html += '<td align="center" bgcolor="' + colors.cta + '" style="background-color:' + colors.cta + ';padding:12px 16px;border-radius:8px;">';
       html += '<span style="color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;">' + esc(urgencyText) + '</span>';
       html += '</td></tr></table>\n\n';
     }
@@ -1166,11 +1285,12 @@
     if (introTitle) html += '<h3>' + esc(introTitle) + '</h3>\n';
     if (introText) html += esc(introText) + '&nbsp;\n\n';
 
-    // Banner HTML — custom imported HTML (HTG/XDA) or simple image banner fallback
+    // Banner HTML — for HTG/XDA, use the textarea content if present, otherwise the default Deals Center CTA.
+    // Other brands fall back to the simple image banner from headerMap.
     var bannerHtml = '';
     var customBannerHtml = document.getElementById('nlCustomBannerHtml').value.trim();
-    if (customBannerHtml && (nlBrand === 'htg' || nlBrand === 'xda')) {
-      bannerHtml = customBannerHtml;
+    if (nlBrand === 'htg' || nlBrand === 'xda') {
+      bannerHtml = customBannerHtml || defaultCtaHtml[nlBrand];
     } else if (header) {
       bannerHtml += '<tr><td colspan="2" style="padding:8px;">';
       bannerHtml += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
