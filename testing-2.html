@@ -177,6 +177,11 @@
           </div>
         </div>
       </div>
+
+      <div style="margin-top:16px">
+        <button class="generate-btn" id="dbImportCsvBtn" style="background:#555;font-size:13px;padding:10px;margin:0;">Import CSV (first 2 deals)</button>
+        <input type="file" id="dbImportCsvFile" accept=".csv" style="display:none;">
+      </div>
     </div>
 
     <div class="card product-card deal-of-day" id="dbCard1">
@@ -249,6 +254,11 @@
             <button data-val="pl">PL</button>
           </div>
         </div>
+      </div>
+
+      <div style="margin:16px 0">
+        <button class="generate-btn" id="sbImportCsvBtn" style="background:#555;font-size:13px;padding:10px;margin:0;">Import CSV (extracts sponsor fields)</button>
+        <input type="file" id="sbImportCsvFile" accept=".csv" style="display:none;">
       </div>
 
       <div class="field-row">
@@ -1783,6 +1793,111 @@
   });
 
   // =============================================
+  // =============================================
+  // Shared CSV parse helper (used by showcase, deal block, sponsor block imports)
+  // =============================================
+  function parseCsvToMap(text) {
+    // Returns { globals: {...}, slots: {1: {...}, 2: {...}, ...} }
+    var lines = [];
+    var cur = '';
+    var inQ = false;
+    for (var ci = 0; ci < text.length; ci++) {
+      var ch = text[ci];
+      if (inQ) {
+        if (ch === '"') {
+          if (text[ci + 1] === '"') { cur += '""'; ci++; }
+          else { cur += ch; inQ = false; }
+        } else { cur += ch; }
+      } else {
+        if (ch === '"') { cur += ch; inQ = true; }
+        else if (ch === '\n') { lines.push(cur); cur = ''; }
+        else if (ch === '\r') { /* skip */ }
+        else { cur += ch; }
+      }
+    }
+    if (cur) lines.push(cur);
+
+    var start = (lines[0] && lines[0].indexOf('field') === 0) ? 1 : 0;
+    var globals = {};
+    var slots = {};
+    for (var i = start; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      var cols = csvParseLine(lines[i]);
+      var field = cols[0], slot = cols[1], val = cols[2] || '';
+      if (slot) {
+        if (!slots[slot]) slots[slot] = {};
+        slots[slot][field] = val;
+      } else {
+        globals[field] = val;
+      }
+    }
+    return { globals: globals, slots: slots };
+  }
+
+  // =============================================
+  // Deal Block CSV import (first 2 deals)
+  // =============================================
+  document.getElementById('dbImportCsvBtn').addEventListener('click', function() {
+    document.getElementById('dbImportCsvFile').click();
+  });
+  document.getElementById('dbImportCsvFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var data = parseCsvToMap(ev.target.result);
+      var dbCards = [document.getElementById('dbCard1'), document.getElementById('dbCard2')];
+      ['1', '2'].forEach(function(s, idx) {
+        var d = data.slots[s];
+        if (!d) return;
+        var card = dbCards[idx];
+        if (d.title != null) card.querySelector('.db-title').value = d.title;
+        if (d.url != null) card.querySelector('.db-url').value = d.url;
+        if (d.img != null) card.querySelector('.db-img').value = d.img;
+        if (d.price != null) card.querySelector('.db-price').value = d.price;
+        if (d.origPrice != null) card.querySelector('.db-orig-price').value = d.origPrice;
+        if (d.cta) card.querySelector('.db-cta').value = d.cta;
+        if (d.skipAffiliate != null) card.querySelector('.db-bypass').checked = d.skipAffiliate === '1';
+      });
+      // Also set brand if present
+      if (data.globals.brand) {
+        dbBrand = data.globals.brand;
+        var btns = document.getElementById('dbBrandGroup').querySelectorAll('button');
+        btns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === dbBrand); });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // =============================================
+  // Sponsor Block CSV import (sponsored fields)
+  // =============================================
+  document.getElementById('sbImportCsvBtn').addEventListener('click', function() {
+    document.getElementById('sbImportCsvFile').click();
+  });
+  document.getElementById('sbImportCsvFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var data = parseCsvToMap(ev.target.result);
+      var g = data.globals;
+      if (g.sponsoredImg != null) document.getElementById('sbImg').value = g.sponsoredImg;
+      if (g.sponsoredHeadline != null) document.getElementById('sbHeadline').value = g.sponsoredHeadline;
+      if (g.sponsoredBody != null) document.getElementById('sbBody').value = g.sponsoredBody;
+      if (g.sponsoredCta != null) document.getElementById('sbCta').value = g.sponsoredCta;
+      if (g.sponsoredLink != null) document.getElementById('sbLink').value = g.sponsoredLink;
+      if (g.brand) {
+        sbBrand = g.brand;
+        var btns = document.getElementById('sbBrandGroup').querySelectorAll('button');
+        btns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === sbBrand); });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
   // Brand Showcase Generator
   // =============================================
   var brandNames = { htg: 'How-To Geek', xda: 'XDA', muo: 'MakeUseOf', ap: 'Android Police', pl: 'Pocket-lint' };
@@ -1810,43 +1925,10 @@
     if (!file) return;
     var reader = new FileReader();
     reader.onload = function(ev) {
-      // Reuse the char-by-char CSV row splitter
-      var text = ev.target.result;
-      var lines = [];
-      var cur = '';
-      var inQ = false;
-      for (var ci = 0; ci < text.length; ci++) {
-        var ch = text[ci];
-        if (inQ) {
-          if (ch === '"') {
-            if (text[ci + 1] === '"') { cur += '""'; ci++; }
-            else { cur += ch; inQ = false; }
-          } else { cur += ch; }
-        } else {
-          if (ch === '"') { cur += ch; inQ = true; }
-          else if (ch === '\n') { lines.push(cur); cur = ''; }
-          else if (ch === '\r') { /* skip */ }
-          else { cur += ch; }
-        }
-      }
-      if (cur) lines.push(cur);
-
-      var start = (lines[0] && lines[0].indexOf('field') === 0) ? 1 : 0;
-      var slotData = {};
-      for (var i = start; i < lines.length; i++) {
-        if (!lines[i].trim()) continue;
-        var cols = csvParseLine(lines[i]);
-        var field = cols[0], slot = cols[1], val = cols[2] || '';
-        if (slot && parseInt(slot) <= 2) {
-          if (!slotData[slot]) slotData[slot] = {};
-          slotData[slot][field] = val;
-        }
-      }
-
-      // Populate showcase cards from first 2 slots
+      var data = parseCsvToMap(ev.target.result);
       var scCards = [document.getElementById('scCard1'), document.getElementById('scCard2')];
       ['1', '2'].forEach(function(s, idx) {
-        var d = slotData[s];
+        var d = data.slots[s];
         if (!d) return;
         var card = scCards[idx];
         if (d.title) card.querySelector('.sc-title').value = d.title;
