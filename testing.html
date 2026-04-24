@@ -84,6 +84,7 @@
     <button data-tab="newsletter">Deals NL Builder</button>
     <button data-tab="dealblock">Deal Block</button>
     <button data-tab="sponsorblock">Sponsor Block</button>
+    <button data-tab="forumpost">Forum Post</button>
   </div>
 
   <!-- TAB 1: Amazon URL Tagger -->
@@ -299,6 +300,43 @@
           <iframe id="sbPreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:300px;background:#fff;"></iframe>
         </div>
         <button class="copy-btn" id="sbCopyBtn" style="margin-top:12px">Copy HTML</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 6: Forum Post -->
+  <div class="tab-content" id="tab-forumpost">
+    <div class="card">
+      <h2 class="section-title">Forum Post Generator</h2>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Converts a Deals Newsletter CSV export into XenForo BBCode for posting to XDA Forums.</p>
+
+      <div style="margin-bottom:16px">
+        <button class="generate-btn" id="fpImportCsvBtn" style="background:#555;font-size:13px;padding:10px;margin:0;">Import CSV</button>
+        <input type="file" id="fpImportCsvFile" accept=".csv" style="display:none;">
+      </div>
+
+      <div class="selectors" style="margin-top:0">
+        <div class="selector-group">
+          <label>Brand (affiliate tag)</label>
+          <div class="btn-group" id="fpBrandGroup">
+            <button data-val="htg">HTG</button>
+            <button data-val="xda" class="active">XDA</button>
+            <button data-val="muo">MUO</button>
+            <button data-val="ap">AP</button>
+            <button data-val="pl">PL</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="fpStatus" style="font-size:13px;color:#888;margin-top:16px;">No CSV imported yet.</div>
+    </div>
+
+    <button class="generate-btn" id="fpGenerateBtn">Generate Forum BBCode</button>
+
+    <div id="fpOutput" style="display:none">
+      <div class="card">
+        <textarea id="fpOutputCodeArea" readonly style="min-height:400px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:#f9f9fb;"></textarea>
+        <button class="copy-btn" id="fpCopyBtn" style="margin-top:12px">Copy BBCode</button>
       </div>
     </div>
   </div>
@@ -1909,6 +1947,135 @@
       btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
     });
+  });
+
+  // =============================================
+  // Forum Post Generator (XenForo BBCode for XDA Forums)
+  // =============================================
+  var fpBrand = 'xda';
+  var fpData = null;
+  initToggle('fpBrandGroup', function(v) { fpBrand = v; });
+
+  document.getElementById('fpImportCsvBtn').addEventListener('click', function() {
+    document.getElementById('fpImportCsvFile').click();
+  });
+
+  document.getElementById('fpImportCsvFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      fpData = parseCsvToMap(ev.target.result);
+      // Default brand to CSV brand but keep XDA as the common target
+      if (fpData.globals.brand) {
+        fpBrand = fpData.globals.brand;
+        var btns = document.getElementById('fpBrandGroup').querySelectorAll('button');
+        btns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === fpBrand); });
+      }
+      var productCount = 0;
+      for (var k in fpData.slots) {
+        var d = fpData.slots[k];
+        if (d.title || d.url) productCount++;
+      }
+      var intro = fpData.globals.introTitle ? ', intro: "' + fpData.globals.introTitle + '"' : '';
+      document.getElementById('fpStatus').innerHTML = '<strong style="color:#34c759;">Loaded:</strong> ' + productCount + ' product' + (productCount !== 1 ? 's' : '') + ', brand: ' + (fpData.globals.brand || '-').toUpperCase() + intro;
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  function fpTagUrl(url, skipAffiliate, tag) {
+    if (!url) return null;
+    if (skipAffiliate === '1') return url;
+    var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+    return asinMatch ? 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag : url;
+  }
+
+  document.getElementById('fpGenerateBtn').addEventListener('click', function() {
+    if (!fpData) { alert('Please import a CSV first.'); return; }
+
+    var g = fpData.globals;
+    var tag = getTag(fpBrand, 'newsletter');
+    var bb = '';
+
+    // Urgency banner
+    if (g.urgencyBanner) {
+      bb += '[CENTER][B][SIZE=5]' + g.urgencyBanner + '[/SIZE][/B][/CENTER]\n\n';
+    }
+
+    // Intro
+    if (g.introTitle) bb += '[SIZE=6][B]' + g.introTitle + '[/B][/SIZE]\n\n';
+    if (g.introText) bb += g.introText + '\n\n';
+
+    var sectionLabels = {
+      0: "EDITOR'S TOP PICKS",
+      2: "DEALS OF THE DAY"
+    };
+
+    // Collect non-empty products in slot order
+    var products = [];
+    for (var i = 1; i <= 8; i++) {
+      var d = fpData.slots[String(i)];
+      if (!d || (!d.title && !d.url)) continue;
+      products.push({ defIndex: i - 1, data: d });
+    }
+
+    products.forEach(function(p, idx) {
+      var d = p.data;
+
+      // Section label — mirrors newsletter logic
+      if (sectionLabels[p.defIndex] && (p.defIndex === 0 || idx > 0)) {
+        if (idx > 0) bb += '[HR][/HR]\n\n';
+        bb += '[CENTER][B][SIZE=5]' + sectionLabels[p.defIndex] + '[/SIZE][/B][/CENTER]\n\n';
+      }
+
+      var tagged = fpTagUrl(d.url, d.skipAffiliate, tag);
+
+      if (d.title) bb += '[B][SIZE=4]' + d.title + '[/SIZE][/B]\n';
+      if (d.img) {
+        if (tagged) bb += '[CENTER][URL=' + tagged + '][IMG]' + d.img + '[/IMG][/URL][/CENTER]\n';
+        else bb += '[CENTER][IMG]' + d.img + '[/IMG][/CENTER]\n';
+      }
+
+      if (d.price) {
+        var priceLine = '[SIZE=5][B]$' + d.price + '[/B][/SIZE]';
+        if (d.origPrice) {
+          priceLine += '  [S]$' + d.origPrice + '[/S]';
+          var cur = parseFloat(d.price.replace(/,/g, ''));
+          var orig = parseFloat(d.origPrice.replace(/,/g, ''));
+          if (!isNaN(cur) && !isNaN(orig) && orig > cur) {
+            var pct = Math.round((orig - cur) / orig * 100);
+            priceLine += '  [COLOR=#2d8e3c][B]SAVE ' + pct + '%[/B][/COLOR]';
+          }
+        }
+        bb += priceLine + '\n';
+      }
+
+      var ctaText = d.cta || 'GET DEAL';
+      if (tagged) bb += '[URL=' + tagged + '][B]→ ' + ctaText + '[/B][/URL]\n';
+
+      bb += '\n';
+    });
+
+    // Sponsored ad block at end (if present)
+    if (g.sponsoredImg || g.sponsoredHeadline || g.sponsoredBody) {
+      bb += '[HR][/HR]\n\n';
+      bb += '[CENTER][B][SIZE=4]SPONSORED[/SIZE][/B][/CENTER]\n\n';
+      if (g.sponsoredImg) {
+        if (g.sponsoredLink) bb += '[CENTER][URL=' + g.sponsoredLink + '][IMG]' + g.sponsoredImg + '[/IMG][/URL][/CENTER]\n\n';
+        else bb += '[CENTER][IMG]' + g.sponsoredImg + '[/IMG][/CENTER]\n\n';
+      }
+      if (g.sponsoredHeadline) bb += '[CENTER][B][SIZE=4]' + g.sponsoredHeadline + '[/SIZE][/B][/CENTER]\n';
+      if (g.sponsoredBody) bb += '[CENTER][I]' + g.sponsoredBody + '[/I][/CENTER]\n';
+      if (g.sponsoredCta && g.sponsoredLink) bb += '[CENTER][URL=' + g.sponsoredLink + '][B]→ ' + g.sponsoredCta + '[/B][/URL][/CENTER]\n';
+    }
+
+    document.getElementById('fpOutputCodeArea').value = bb.trim();
+    document.getElementById('fpOutput').style.display = 'block';
+  });
+
+  document.getElementById('fpCopyBtn').addEventListener('click', function() {
+    copyWithFeedback(this, document.getElementById('fpOutputCodeArea').value, 'Copy BBCode');
   });
 </script>
 </body>
