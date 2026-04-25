@@ -328,6 +328,14 @@
         </div>
       </div>
 
+      <div class="field-row" style="margin-top:16px">
+        <label>Image width (pixels)</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="fpImageWidth" value="400" style="width:100px;text-align:center;">
+          <span style="font-size:13px;color:#888;">Smaller = less screen real estate (default: 400)</span>
+        </div>
+      </div>
+
       <div id="fpStatus" style="font-size:13px;color:#888;margin-top:16px;">No CSV imported yet.</div>
     </div>
 
@@ -335,8 +343,8 @@
 
     <div id="fpOutput" style="display:none">
       <div class="card">
-        <p style="font-size:13px;color:#888;margin-bottom:8px;">Output is editable — tweak before copying. Re-generating will overwrite edits.</p>
-        <textarea id="fpOutputCodeArea" style="min-height:400px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:#fff;"></textarea>
+        <div style="background:#e8f4fd;border:1.5px solid #0071e3;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#0071e3;font-weight:600;">EDITABLE — modify the BBCode below before copying. Re-generating will overwrite your changes.</div>
+        <textarea id="fpOutputCodeArea" style="min-height:400px;font-family:'SF Mono','Fira Code',monospace;font-size:13px;background:#fff;border:1.5px solid #0071e3;line-height:1.5;"></textarea>
         <button class="copy-btn" id="fpCopyBtn" style="margin-top:12px">Copy BBCode</button>
       </div>
     </div>
@@ -2018,6 +2026,7 @@
 
     var g = fpData.globals;
     var tag = getTag(fpBrand, 'newsletter');
+    var imgWidth = parseInt(document.getElementById('fpImageWidth').value) || 400;
     var bb = '';
 
     // Urgency banner
@@ -2055,9 +2064,9 @@
 
       if (d.title) bb += '[B][SIZE=4]' + d.title + '[/SIZE][/B]\n';
       if (d.img) {
-        var smallImg = fpShrinkImage(d.img, 400);
-        if (tagged) bb += '[CENTER][URL=' + tagged + '][IMG width="400"]' + smallImg + '[/IMG][/URL][/CENTER]\n';
-        else bb += '[CENTER][IMG width="400"]' + smallImg + '[/IMG][/CENTER]\n';
+        var smallImg = fpShrinkImage(d.img, imgWidth);
+        if (tagged) bb += '[URL=' + tagged + '][IMG width="' + imgWidth + '"]' + smallImg + '[/IMG][/URL]\n';
+        else bb += '[IMG width="' + imgWidth + '"]' + smallImg + '[/IMG]\n';
       }
 
       if (d.price) {
@@ -2085,13 +2094,13 @@
       bb += '[HR][/HR]\n\n';
       bb += '[CENTER][B][SIZE=4]SPONSORED[/SIZE][/B][/CENTER]\n\n';
       if (g.sponsoredImg) {
-        var smallSpImg = fpShrinkImage(g.sponsoredImg, 500);
-        if (g.sponsoredLink) bb += '[CENTER][URL=' + g.sponsoredLink + '][IMG width="500"]' + smallSpImg + '[/IMG][/URL][/CENTER]\n\n';
-        else bb += '[CENTER][IMG width="500"]' + smallSpImg + '[/IMG][/CENTER]\n\n';
+        var smallSpImg = fpShrinkImage(g.sponsoredImg, imgWidth);
+        if (g.sponsoredLink) bb += '[URL=' + g.sponsoredLink + '][IMG width="' + imgWidth + '"]' + smallSpImg + '[/IMG][/URL]\n\n';
+        else bb += '[IMG width="' + imgWidth + '"]' + smallSpImg + '[/IMG]\n\n';
       }
-      if (g.sponsoredHeadline) bb += '[CENTER][B][SIZE=4]' + g.sponsoredHeadline + '[/SIZE][/B][/CENTER]\n';
-      if (g.sponsoredBody) bb += '[CENTER][I]' + g.sponsoredBody + '[/I][/CENTER]\n';
-      if (g.sponsoredCta && g.sponsoredLink) bb += '[CENTER][URL=' + g.sponsoredLink + '][B]→ ' + g.sponsoredCta + '[/B][/URL][/CENTER]\n';
+      if (g.sponsoredHeadline) bb += '[B][SIZE=4]' + g.sponsoredHeadline + '[/SIZE][/B]\n';
+      if (g.sponsoredBody) bb += '[I]' + g.sponsoredBody + '[/I]\n';
+      if (g.sponsoredCta && g.sponsoredLink) bb += '[URL=' + g.sponsoredLink + '][B]→ ' + g.sponsoredCta + '[/B][/URL]\n';
     }
 
     document.getElementById('fpOutputCodeArea').value = bb.trim();
