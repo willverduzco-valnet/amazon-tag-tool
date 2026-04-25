@@ -308,7 +308,7 @@
   <div class="tab-content" id="tab-forumpost">
     <div class="card">
       <h2 class="section-title">Forum Post Generator</h2>
-      <p style="font-size:13px;color:#888;margin-bottom:16px;">Converts a Deals Newsletter CSV export into XenForo BBCode for posting to XDA Forums.</p>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Generates XenForo BBCode for XDA Forums. Import a Deals NL CSV to populate the fields below, then edit anything before generating.</p>
 
       <div style="margin-bottom:16px">
         <button class="generate-btn" id="fpImportCsvBtn" style="background:#555;font-size:13px;padding:10px;margin:0;">Import CSV</button>
@@ -331,19 +331,64 @@
       <div class="field-row" style="margin-top:16px">
         <label>Image width (pixels)</label>
         <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="fpImageWidth" value="400" style="width:100px;text-align:center;">
-          <span style="font-size:13px;color:#888;">Smaller = less screen real estate (default: 400)</span>
+          <input type="text" id="fpImageWidth" value="300" style="width:100px;text-align:center;">
+          <span style="font-size:13px;color:#888;">Smaller = less screen real estate (default: 300)</span>
         </div>
       </div>
 
       <div id="fpStatus" style="font-size:13px;color:#888;margin-top:16px;">No CSV imported yet.</div>
     </div>
 
+    <div class="card">
+      <h2 class="section-title" style="margin-bottom:12px;">Global Fields</h2>
+      <div class="field-row">
+        <label>Urgency Banner (optional)</label>
+        <input type="text" id="fpUrgencyBanner" placeholder="e.g. FLASH DEALS — These prices expire in 24 hours!">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Intro Title</label>
+        <input type="text" id="fpIntroTitle" placeholder="e.g. Today's Best Deals">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Intro Text</label>
+        <textarea id="fpIntroText" rows="3" placeholder="Write your intro paragraph here..."></textarea>
+      </div>
+    </div>
+
+    <div id="fpProductCards"></div>
+
+    <div class="card">
+      <h2 class="section-title" style="margin-bottom:4px;">Sponsored Block (optional)</h2>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Leave all fields empty to omit.</p>
+      <div class="field-row">
+        <label>Banner Image URL</label>
+        <input type="text" id="fpSponsoredImg" placeholder="https://...">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Headline</label>
+        <input type="text" id="fpSponsoredHeadline" placeholder="e.g. Your Ad Here">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Body Text</label>
+        <input type="text" id="fpSponsoredBody" placeholder="e.g. Sponsor placement copy">
+      </div>
+      <div class="field-row-inline" style="margin-top:12px">
+        <div>
+          <label>CTA Text</label>
+          <input type="text" id="fpSponsoredCta" placeholder="e.g. LEARN MORE">
+        </div>
+        <div>
+          <label>CTA Link</label>
+          <input type="text" id="fpSponsoredLink" placeholder="https://...">
+        </div>
+      </div>
+    </div>
+
     <button class="generate-btn" id="fpGenerateBtn">Generate Forum BBCode</button>
 
     <div id="fpOutput" style="display:none">
       <div class="card">
-        <div style="background:#e8f4fd;border:1.5px solid #0071e3;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#0071e3;font-weight:600;">EDITABLE — modify the BBCode below before copying. Re-generating will overwrite your changes.</div>
+        <div style="background:#e8f4fd;border:1.5px solid #0071e3;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#0071e3;font-weight:600;">Edit the fields above and re-generate, or fine-tune the BBCode below before copying.</div>
         <textarea id="fpOutputCodeArea" style="min-height:400px;font-family:'SF Mono','Fira Code',monospace;font-size:13px;background:#fff;border:1.5px solid #0071e3;line-height:1.5;"></textarea>
         <button class="copy-btn" id="fpCopyBtn" style="margin-top:12px">Copy BBCode</button>
       </div>
@@ -1962,8 +2007,40 @@
   // Forum Post Generator (XenForo BBCode for XDA Forums)
   // =============================================
   var fpBrand = 'xda';
-  var fpData = null;
   initToggle('fpBrandGroup', function(v) { fpBrand = v; });
+
+  // Build editable product cards (mirrors the NL Builder structure)
+  var fpProductDefs = [
+    { label: 'Deal of the Day', cls: 'deal-of-day' },
+    { label: 'Product 2', cls: '' },
+    { label: "Editor's Pick", cls: 'editors-pick' },
+    { label: 'Product 4', cls: '' },
+    { label: 'Product 5', cls: '' },
+    { label: 'Product 6', cls: '' },
+    { label: 'Product 7', cls: '' },
+    { label: 'Product 8', cls: '' }
+  ];
+  var fpContainer = document.getElementById('fpProductCards');
+  fpProductDefs.forEach(function(def) {
+    var card = document.createElement('div');
+    card.className = 'card product-card' + (def.cls ? ' ' + def.cls : '');
+    card.innerHTML =
+      '<span class="product-num">' + def.label + '</span>' +
+      '<div class="field-row"><label>Product Title</label><input type="text" class="fp-title" placeholder="e.g. Sony WH-1000XM5"></div>' +
+      '<div class="field-row-inline">' +
+        '<div><label>Amazon URL</label><input type="text" class="fp-url" placeholder="amazon.com/dp/..."></div>' +
+        '<div><label>Image URL</label><input type="text" class="fp-img" placeholder="https://..."></div>' +
+      '</div>' +
+      '<div class="field-row-inline">' +
+        '<div><label>Current Price</label><input type="text" class="fp-price" placeholder="e.g. 240"></div>' +
+        '<div><label>Original Price</label><input type="text" class="fp-orig-price" placeholder="e.g. 300"></div>' +
+        '<div><label>CTA Text</label><input type="text" class="fp-cta" placeholder="e.g. GET DEAL" value="GET DEAL"></div>' +
+      '</div>' +
+      '<div class="field-row" style="display:flex;align-items:center;gap:12px;">' +
+        '<label class="cleaner-option" style="margin:0;"><input type="checkbox" class="fp-skip-affiliate"> Bypass link processing</label>' +
+      '</div>';
+    fpContainer.appendChild(card);
+  });
 
   document.getElementById('fpImportCsvBtn').addEventListener('click', function() {
     document.getElementById('fpImportCsvFile').click();
@@ -1974,20 +2051,58 @@
     if (!file) return;
     var reader = new FileReader();
     reader.onload = function(ev) {
-      fpData = parseCsvToMap(ev.target.result);
-      // Default brand to CSV brand but keep XDA as the common target
-      if (fpData.globals.brand) {
-        fpBrand = fpData.globals.brand;
+      var data = parseCsvToMap(ev.target.result);
+      var g = data.globals;
+
+      // Brand
+      if (g.brand) {
+        fpBrand = g.brand;
         var btns = document.getElementById('fpBrandGroup').querySelectorAll('button');
         btns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === fpBrand); });
       }
+
+      // Globals
+      var globalMap = {
+        urgencyBanner: 'fpUrgencyBanner',
+        introTitle: 'fpIntroTitle',
+        introText: 'fpIntroText',
+        sponsoredImg: 'fpSponsoredImg',
+        sponsoredHeadline: 'fpSponsoredHeadline',
+        sponsoredBody: 'fpSponsoredBody',
+        sponsoredCta: 'fpSponsoredCta',
+        sponsoredLink: 'fpSponsoredLink'
+      };
+      Object.keys(globalMap).forEach(function(k) {
+        if (g[k] != null) document.getElementById(globalMap[k]).value = g[k];
+      });
+
+      // Product cards
+      var cards = fpContainer.querySelectorAll('.product-card');
+      var fieldMap = {
+        title: '.fp-title', url: '.fp-url', img: '.fp-img',
+        price: '.fp-price', origPrice: '.fp-orig-price', cta: '.fp-cta'
+      };
+      cards.forEach(function(card) {
+        Object.keys(fieldMap).forEach(function(k) { card.querySelector(fieldMap[k]).value = ''; });
+        card.querySelector('.fp-skip-affiliate').checked = false;
+      });
+      cards.forEach(function(card, idx) {
+        var slot = data.slots[String(idx + 1)];
+        if (!slot) return;
+        Object.keys(fieldMap).forEach(function(k) {
+          if (slot[k] != null) card.querySelector(fieldMap[k]).value = slot[k];
+        });
+        if (slot.skipAffiliate != null) {
+          card.querySelector('.fp-skip-affiliate').checked = slot.skipAffiliate === '1';
+        }
+      });
+
       var productCount = 0;
-      for (var k in fpData.slots) {
-        var d = fpData.slots[k];
-        if (d.title || d.url) productCount++;
-      }
-      var intro = fpData.globals.introTitle ? ', intro: "' + fpData.globals.introTitle + '"' : '';
-      document.getElementById('fpStatus').innerHTML = '<strong style="color:#34c759;">Loaded:</strong> ' + productCount + ' product' + (productCount !== 1 ? 's' : '') + ', brand: ' + (fpData.globals.brand || '-').toUpperCase() + intro;
+      cards.forEach(function(card) {
+        if (card.querySelector('.fp-title').value.trim() || card.querySelector('.fp-url').value.trim()) productCount++;
+      });
+      var intro = g.introTitle ? ', intro: "' + g.introTitle + '"' : '';
+      document.getElementById('fpStatus').innerHTML = '<strong style="color:#34c759;">Loaded:</strong> ' + productCount + ' product' + (productCount !== 1 ? 's' : '') + ', brand: ' + (g.brand || '-').toUpperCase() + intro + '. Edit the fields below before generating.';
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -1995,7 +2110,7 @@
 
   function fpTagUrl(url, skipAffiliate, tag) {
     if (!url) return null;
-    if (skipAffiliate === '1') return url;
+    if (skipAffiliate) return url;
     var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
     return asinMatch ? 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag : url;
   }
@@ -2005,16 +2120,11 @@
   // Unrecognized hosts pass through unchanged.
   function fpShrinkImage(url, size) {
     if (!url) return url;
-    // Amazon CDN — path modifier
     if (/(?:media-amazon|images-amazon|ssl-images-amazon)\.com/i.test(url)) {
       var sizeRegex = /\._((?:AC_)?[SU][LXY])(\d+)_\./;
-      if (sizeRegex.test(url)) {
-        return url.replace(sizeRegex, '._$1' + size + '_.');
-      }
+      if (sizeRegex.test(url)) return url.replace(sizeRegex, '._$1' + size + '_.');
       return url.replace(/(\.(?:jpg|jpeg|png|gif|webp))(\?|#|$)/i, '._SL' + size + '_$1$2');
     }
-    // Valnet WordPress CDN (static0.howtogeekimages.com, static0.xdaimages.com, etc.)
-    // — strip any existing query and set w={size}
     if (/static\d+\.[a-z]+images\.com/i.test(url)) {
       return url.split('?')[0] + '?w=' + size;
     }
@@ -2022,42 +2132,46 @@
   }
 
   document.getElementById('fpGenerateBtn').addEventListener('click', function() {
-    if (!fpData) { alert('Please import a CSV first.'); return; }
-
-    var g = fpData.globals;
     var tag = getTag(fpBrand, 'newsletter');
-    var imgWidth = parseInt(document.getElementById('fpImageWidth').value) || 400;
+    var imgWidth = parseInt(document.getElementById('fpImageWidth').value) || 300;
     var bb = '';
 
-    // Urgency banner
-    if (g.urgencyBanner) {
-      bb += '[CENTER][B][SIZE=5]' + g.urgencyBanner + '[/SIZE][/B][/CENTER]\n\n';
-    }
+    var urgencyText = document.getElementById('fpUrgencyBanner').value.trim();
+    var introTitle = document.getElementById('fpIntroTitle').value.trim();
+    var introText = document.getElementById('fpIntroText').value.trim();
 
-    // Intro
-    if (g.introTitle) bb += '[SIZE=6][B]' + g.introTitle + '[/B][/SIZE]\n\n';
-    if (g.introText) bb += g.introText + '\n\n';
+    if (urgencyText) bb += '[B][SIZE=5]' + urgencyText + '[/SIZE][/B]\n\n';
+    if (introTitle) bb += '[SIZE=6][B]' + introTitle + '[/B][/SIZE]\n\n';
+    if (introText) bb += introText + '\n\n';
 
     var sectionLabels = {
       0: "EDITOR'S TOP PICKS",
       2: "DEALS OF THE DAY"
     };
 
-    // Collect non-empty products in slot order
+    // Collect non-empty products from cards
+    var cards = fpContainer.querySelectorAll('.product-card');
     var products = [];
-    for (var i = 1; i <= 8; i++) {
-      var d = fpData.slots[String(i)];
-      if (!d || (!d.title && !d.url)) continue;
-      products.push({ defIndex: i - 1, data: d });
-    }
+    cards.forEach(function(card, i) {
+      var d = {
+        title: card.querySelector('.fp-title').value.trim(),
+        url: card.querySelector('.fp-url').value.trim(),
+        img: card.querySelector('.fp-img').value.trim(),
+        price: card.querySelector('.fp-price').value.trim(),
+        origPrice: card.querySelector('.fp-orig-price').value.trim(),
+        cta: card.querySelector('.fp-cta').value.trim() || 'GET DEAL',
+        skipAffiliate: card.querySelector('.fp-skip-affiliate').checked
+      };
+      if (!d.title && !d.url) return;
+      products.push({ defIndex: i, data: d });
+    });
 
     products.forEach(function(p, idx) {
       var d = p.data;
 
-      // Section label — mirrors newsletter logic
       if (sectionLabels[p.defIndex] && (p.defIndex === 0 || idx > 0)) {
         if (idx > 0) bb += '[HR][/HR]\n\n';
-        bb += '[CENTER][B][SIZE=5]' + sectionLabels[p.defIndex] + '[/SIZE][/B][/CENTER]\n\n';
+        bb += '[B][SIZE=5]' + sectionLabels[p.defIndex] + '[/SIZE][/B]\n\n';
       }
 
       var tagged = fpTagUrl(d.url, d.skipAffiliate, tag);
@@ -2068,7 +2182,6 @@
         if (tagged) bb += '[URL=' + tagged + '][IMG width="' + imgWidth + '"]' + smallImg + '[/IMG][/URL]\n';
         else bb += '[IMG width="' + imgWidth + '"]' + smallImg + '[/IMG]\n';
       }
-
       if (d.price) {
         var priceLine = '[SIZE=5][B]$' + d.price + '[/B][/SIZE]';
         if (d.origPrice) {
@@ -2082,25 +2195,28 @@
         }
         bb += priceLine + '\n';
       }
-
-      var ctaText = d.cta || 'GET DEAL';
-      if (tagged) bb += '[URL=' + tagged + '][B]→ ' + ctaText + '[/B][/URL]\n';
-
+      if (tagged) bb += '[URL=' + tagged + '][B]→ ' + d.cta + '[/B][/URL]\n';
       bb += '\n';
     });
 
-    // Sponsored ad block at end (if present)
-    if (g.sponsoredImg || g.sponsoredHeadline || g.sponsoredBody) {
+    // Sponsored
+    var spImg = document.getElementById('fpSponsoredImg').value.trim();
+    var spHeadline = document.getElementById('fpSponsoredHeadline').value.trim();
+    var spBody = document.getElementById('fpSponsoredBody').value.trim();
+    var spCta = document.getElementById('fpSponsoredCta').value.trim();
+    var spLink = document.getElementById('fpSponsoredLink').value.trim();
+
+    if (spImg || spHeadline || spBody) {
       bb += '[HR][/HR]\n\n';
-      bb += '[CENTER][B][SIZE=4]SPONSORED[/SIZE][/B][/CENTER]\n\n';
-      if (g.sponsoredImg) {
-        var smallSpImg = fpShrinkImage(g.sponsoredImg, imgWidth);
-        if (g.sponsoredLink) bb += '[URL=' + g.sponsoredLink + '][IMG width="' + imgWidth + '"]' + smallSpImg + '[/IMG][/URL]\n\n';
+      bb += '[B][SIZE=4]SPONSORED[/SIZE][/B]\n\n';
+      if (spImg) {
+        var smallSpImg = fpShrinkImage(spImg, imgWidth);
+        if (spLink) bb += '[URL=' + spLink + '][IMG width="' + imgWidth + '"]' + smallSpImg + '[/IMG][/URL]\n\n';
         else bb += '[IMG width="' + imgWidth + '"]' + smallSpImg + '[/IMG]\n\n';
       }
-      if (g.sponsoredHeadline) bb += '[B][SIZE=4]' + g.sponsoredHeadline + '[/SIZE][/B]\n';
-      if (g.sponsoredBody) bb += '[I]' + g.sponsoredBody + '[/I]\n';
-      if (g.sponsoredCta && g.sponsoredLink) bb += '[URL=' + g.sponsoredLink + '][B]→ ' + g.sponsoredCta + '[/B][/URL]\n';
+      if (spHeadline) bb += '[B][SIZE=4]' + spHeadline + '[/SIZE][/B]\n';
+      if (spBody) bb += '[I]' + spBody + '[/I]\n';
+      if (spCta && spLink) bb += '[URL=' + spLink + '][B]→ ' + spCta + '[/B][/URL]\n';
     }
 
     document.getElementById('fpOutputCodeArea').value = bb.trim();
