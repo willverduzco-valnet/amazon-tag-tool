@@ -1992,18 +1992,25 @@
     return asinMatch ? 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag : url;
   }
 
-  // Rewrite Amazon CDN image URLs to request a smaller pre-resized image.
-  // Amazon serves variants via _SL{n}_, _AC_SL{n}_, _UX{n}_, etc. modifiers in the path.
-  // Non-Amazon URLs pass through unchanged.
+  // Rewrite image URLs to request a smaller pre-resized image directly from the source CDN.
+  // Handles Amazon CDN (path modifier like _SL400_) and Valnet's WordPress CDN (?w=400).
+  // Unrecognized hosts pass through unchanged.
   function fpShrinkImage(url, size) {
     if (!url) return url;
-    if (!/(?:media-amazon|images-amazon|ssl-images-amazon)\.com/i.test(url)) return url;
-    var sizeRegex = /\._((?:AC_)?[SU][LXY])(\d+)_\./;
-    if (sizeRegex.test(url)) {
-      return url.replace(sizeRegex, '._$1' + size + '_.');
+    // Amazon CDN — path modifier
+    if (/(?:media-amazon|images-amazon|ssl-images-amazon)\.com/i.test(url)) {
+      var sizeRegex = /\._((?:AC_)?[SU][LXY])(\d+)_\./;
+      if (sizeRegex.test(url)) {
+        return url.replace(sizeRegex, '._$1' + size + '_.');
+      }
+      return url.replace(/(\.(?:jpg|jpeg|png|gif|webp))(\?|#|$)/i, '._SL' + size + '_$1$2');
     }
-    // No size modifier present — inject _SL{size}_ before the extension
-    return url.replace(/(\.(?:jpg|jpeg|png|gif|webp))(\?|#|$)/i, '._SL' + size + '_$1$2');
+    // Valnet WordPress CDN (static0.howtogeekimages.com, static0.xdaimages.com, etc.)
+    // — strip any existing query and set w={size}
+    if (/static\d+\.[a-z]+images\.com/i.test(url)) {
+      return url.split('?')[0] + '?w=' + size;
+    }
+    return url;
   }
 
   document.getElementById('fpGenerateBtn').addEventListener('click', function() {
