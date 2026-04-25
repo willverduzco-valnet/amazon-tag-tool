@@ -331,8 +331,8 @@
       <div class="field-row" style="margin-top:16px">
         <label>Image width (pixels)</label>
         <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="fpImageWidth" value="300" style="width:100px;text-align:center;">
-          <span style="font-size:13px;color:#888;">Smaller = less screen real estate (default: 300)</span>
+          <input type="text" id="fpImageWidth" value="400" style="width:100px;text-align:center;">
+          <span style="font-size:13px;color:#888;">Smaller = less screen real estate (default: 400)</span>
         </div>
       </div>
 
@@ -2133,7 +2133,7 @@
 
   document.getElementById('fpGenerateBtn').addEventListener('click', function() {
     var tag = getTag(fpBrand, 'newsletter');
-    var imgWidth = parseInt(document.getElementById('fpImageWidth').value) || 300;
+    var imgWidth = parseInt(document.getElementById('fpImageWidth').value) || 400;
     var bb = '';
 
     var urgencyText = document.getElementById('fpUrgencyBanner').value.trim();
