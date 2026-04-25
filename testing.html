@@ -1992,6 +1992,20 @@
     return asinMatch ? 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag : url;
   }
 
+  // Rewrite Amazon CDN image URLs to request a smaller pre-resized image.
+  // Amazon serves variants via _SL{n}_, _AC_SL{n}_, _UX{n}_, etc. modifiers in the path.
+  // Non-Amazon URLs pass through unchanged.
+  function fpShrinkImage(url, size) {
+    if (!url) return url;
+    if (!/(?:media-amazon|images-amazon|ssl-images-amazon)\.com/i.test(url)) return url;
+    var sizeRegex = /\._((?:AC_)?[SU][LXY])(\d+)_\./;
+    if (sizeRegex.test(url)) {
+      return url.replace(sizeRegex, '._$1' + size + '_.');
+    }
+    // No size modifier present — inject _SL{size}_ before the extension
+    return url.replace(/(\.(?:jpg|jpeg|png|gif|webp))(\?|#|$)/i, '._SL' + size + '_$1$2');
+  }
+
   document.getElementById('fpGenerateBtn').addEventListener('click', function() {
     if (!fpData) { alert('Please import a CSV first.'); return; }
 
@@ -2034,8 +2048,9 @@
 
       if (d.title) bb += '[B][SIZE=4]' + d.title + '[/SIZE][/B]\n';
       if (d.img) {
-        if (tagged) bb += '[CENTER][URL=' + tagged + '][IMG width="400"]' + d.img + '[/IMG][/URL][/CENTER]\n';
-        else bb += '[CENTER][IMG width="400"]' + d.img + '[/IMG][/CENTER]\n';
+        var smallImg = fpShrinkImage(d.img, 400);
+        if (tagged) bb += '[CENTER][URL=' + tagged + '][IMG width="400"]' + smallImg + '[/IMG][/URL][/CENTER]\n';
+        else bb += '[CENTER][IMG width="400"]' + smallImg + '[/IMG][/CENTER]\n';
       }
 
       if (d.price) {
@@ -2063,8 +2078,9 @@
       bb += '[HR][/HR]\n\n';
       bb += '[CENTER][B][SIZE=4]SPONSORED[/SIZE][/B][/CENTER]\n\n';
       if (g.sponsoredImg) {
-        if (g.sponsoredLink) bb += '[CENTER][URL=' + g.sponsoredLink + '][IMG width="500"]' + g.sponsoredImg + '[/IMG][/URL][/CENTER]\n\n';
-        else bb += '[CENTER][IMG width="500"]' + g.sponsoredImg + '[/IMG][/CENTER]\n\n';
+        var smallSpImg = fpShrinkImage(g.sponsoredImg, 500);
+        if (g.sponsoredLink) bb += '[CENTER][URL=' + g.sponsoredLink + '][IMG width="500"]' + smallSpImg + '[/IMG][/URL][/CENTER]\n\n';
+        else bb += '[CENTER][IMG width="500"]' + smallSpImg + '[/IMG][/CENTER]\n\n';
       }
       if (g.sponsoredHeadline) bb += '[CENTER][B][SIZE=4]' + g.sponsoredHeadline + '[/SIZE][/B][/CENTER]\n';
       if (g.sponsoredBody) bb += '[CENTER][I]' + g.sponsoredBody + '[/I][/CENTER]\n';
