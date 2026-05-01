@@ -14,6 +14,8 @@
   label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #555; text-transform: uppercase; letter-spacing: .5px; }
   input[type="text"], textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #d2d2d7; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; transition: border-color .15s; }
   input[type="text"]:focus, textarea:focus { border-color: #0071e3; }
+  select.purpose-select { width: 100%; padding: 9px 12px; border: 1.5px solid #d2d2d7; border-radius: 10px; font-size: 13px; font-weight: 600; font-family: inherit; outline: none; transition: border-color .15s; background: #fff; cursor: pointer; }
+  select.purpose-select:focus { border-color: #0071e3; }
   textarea { resize: vertical; min-height: 60px; }
   .selectors { display: flex; gap: 16px; margin: 20px 0; }
   .selector-group { flex: 1; }
@@ -124,11 +126,16 @@
         </div>
         <div class="selector-group">
           <label>Purpose</label>
-          <div class="btn-group" id="purposeGroup">
-            <button data-val="tcp" class="active">TCP</button>
-            <button data-val="newsletter">Newsletter</button>
-            <button data-val="fb">FB</button>
-          </div>
+          <select id="purposeSelect" class="purpose-select">
+            <option value="tcp">Deals Center (TCP)</option>
+            <option value="newsletter">General Newsletter</option>
+            <option value="dealnewsletter">Deals Newsletter</option>
+            <option value="fb">Facebook</option>
+            <option value="pin">Pinterest</option>
+            <option value="forum">Forums (XDA-only)</option>
+            <option value="quiz">Quiz Widget</option>
+            <option value="showcase">Showcase Widget</option>
+          </select>
         </div>
       </div>
 
@@ -553,11 +560,16 @@
           </div>
           <div class="selector-group">
             <label>Purpose</label>
-            <div class="btn-group" id="clnPurposeGroup">
-              <button data-val="tcp" class="active">TCP</button>
-              <button data-val="newsletter">Newsletter</button>
-              <button data-val="fb">FB</button>
-            </div>
+            <select id="clnPurposeSelect" class="purpose-select">
+              <option value="tcp">Deals Center (TCP)</option>
+              <option value="newsletter">General Newsletter</option>
+              <option value="dealnewsletter">Deals Newsletter</option>
+              <option value="fb">Facebook</option>
+              <option value="pin">Pinterest</option>
+              <option value="forum">Forums (XDA-only)</option>
+              <option value="quiz">Quiz Widget</option>
+              <option value="showcase">Showcase Widget</option>
+            </select>
           </div>
         </div>
       </div>
@@ -643,6 +655,9 @@
   }
 
   function getTag(brand, purpose) {
+    // Forums purpose uses a single XDA-only tag regardless of selected brand
+    if (purpose === 'forum') return 'xdaforum01-20';
+    // AP general-newsletter is non-standard
     if (brand === 'ap' && purpose === 'newsletter') return 'ap-newsletter04-20';
     return brand + '-' + purpose + '-20';
   }
@@ -805,7 +820,7 @@
   var amzMode = 'single';
 
   initToggle('siteGroup', function(v) { site = v; }, generateAmz);
-  initToggle('purposeGroup', function(v) { purpose = v; }, generateAmz);
+  document.getElementById('purposeSelect').addEventListener('change', function() { purpose = this.value; generateAmz(); });
   initModeToggle('amzModeToggle', 'amzSingleMode', 'amzBulkMode', function(mode) {
     amzMode = mode;
     // Hide both result boxes on mode switch
@@ -887,7 +902,7 @@
   var clnMode = 'single';
 
   initToggle('clnBrandGroup', function(v) { clnBrand = v; }, generateClean);
-  initToggle('clnPurposeGroup', function(v) { clnPurpose = v; }, generateClean);
+  document.getElementById('clnPurposeSelect').addEventListener('change', function() { clnPurpose = this.value; generateClean(); });
   initModeToggle('clnModeToggle', 'clnSingleMode', 'clnBulkMode', function(mode) {
     clnMode = mode;
     document.getElementById('clnResultBox').classList.remove('visible');
