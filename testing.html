@@ -308,27 +308,14 @@
   <div class="tab-content" id="tab-forumpost">
     <div class="card">
       <h2 class="section-title">Forum Post Generator</h2>
-      <p style="font-size:13px;color:#888;margin-bottom:16px;">Generates XenForo BBCode for XDA Forums. Import a Deals NL CSV to populate the fields below, then edit anything before generating.</p>
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">Generates XenForo BBCode for posting to XDA Forums. Uses the <code style="font-size:12px;background:#e5e5e7;padding:1px 5px;border-radius:4px;">xdaforum01-20</code> affiliate tag (XDA-only). Import a Deals NL CSV to populate the fields below, then edit anything before generating.</p>
 
       <div style="margin-bottom:16px">
         <button class="generate-btn" id="fpImportCsvBtn" style="background:#555;font-size:13px;padding:10px;margin:0;">Import CSV</button>
         <input type="file" id="fpImportCsvFile" accept=".csv" style="display:none;">
       </div>
 
-      <div class="selectors" style="margin-top:0">
-        <div class="selector-group">
-          <label>Brand (affiliate tag)</label>
-          <div class="btn-group" id="fpBrandGroup">
-            <button data-val="htg">HTG</button>
-            <button data-val="xda" class="active">XDA</button>
-            <button data-val="muo">MUO</button>
-            <button data-val="ap">AP</button>
-            <button data-val="pl">PL</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="field-row" style="margin-top:16px">
+      <div class="field-row">
         <label>Image width (pixels)</label>
         <div style="display:flex;gap:8px;align-items:center;">
           <input type="text" id="fpImageWidth" value="400" style="width:100px;text-align:center;">
@@ -2005,9 +1992,9 @@
 
   // =============================================
   // Forum Post Generator (XenForo BBCode for XDA Forums)
+  // XDA-only: always uses the xdaforum01-20 affiliate tag.
   // =============================================
-  var fpBrand = 'xda';
-  initToggle('fpBrandGroup', function(v) { fpBrand = v; });
+  var FP_TAG = 'xdaforum01-20';
 
   // Build editable product cards (mirrors the NL Builder structure)
   var fpProductDefs = [
@@ -2054,13 +2041,6 @@
       var data = parseCsvToMap(ev.target.result);
       var g = data.globals;
 
-      // Brand
-      if (g.brand) {
-        fpBrand = g.brand;
-        var btns = document.getElementById('fpBrandGroup').querySelectorAll('button');
-        btns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === fpBrand); });
-      }
-
       // Globals
       var globalMap = {
         urgencyBanner: 'fpUrgencyBanner',
@@ -2102,7 +2082,7 @@
         if (card.querySelector('.fp-title').value.trim() || card.querySelector('.fp-url').value.trim()) productCount++;
       });
       var intro = g.introTitle ? ', intro: "' + g.introTitle + '"' : '';
-      document.getElementById('fpStatus').innerHTML = '<strong style="color:#34c759;">Loaded:</strong> ' + productCount + ' product' + (productCount !== 1 ? 's' : '') + ', brand: ' + (g.brand || '-').toUpperCase() + intro + '. Edit the fields below before generating.';
+      document.getElementById('fpStatus').innerHTML = '<strong style="color:#34c759;">Loaded:</strong> ' + productCount + ' product' + (productCount !== 1 ? 's' : '') + intro + '. Edit the fields below before generating.';
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -2132,7 +2112,7 @@
   }
 
   document.getElementById('fpGenerateBtn').addEventListener('click', function() {
-    var tag = getTag(fpBrand, 'newsletter');
+    var tag = FP_TAG;
     var imgWidth = parseInt(document.getElementById('fpImageWidth').value) || 400;
     var bb = '';
 
