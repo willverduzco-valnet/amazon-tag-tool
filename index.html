@@ -136,7 +136,6 @@
             <option value="forum">Forums (XDA-only)</option>
             <option value="quiz">Quiz Widget</option>
             <option value="showcase">Showcase Widget</option>
-            <option value="spo">Sponsored Content</option>
           </select>
         </div>
       </div>
@@ -243,6 +242,21 @@
         </div>
         <button class="copy-btn" id="dbCopyBtn" style="margin-top:12px">Copy HTML</button>
       </div>
+      <div class="card">
+        <h2 class="section-title" style="margin-bottom:4px;">Editorial Newsletter Disclosure</h2>
+        <p style="font-size:13px;color:#888;margin-bottom:12px;">Paste this HTML at the bottom of the editorial newsletter that contains the deal block above.</p>
+        <div class="btn-group" id="dbDisclosureToggle" style="margin-bottom:16px">
+          <button data-val="code" class="active">HTML Code</button>
+          <button data-val="preview">Preview</button>
+        </div>
+        <div id="dbDisclosureCode">
+          <textarea id="dbDisclosureCodeArea" readonly style="min-height:80px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:#f9f9fb;"></textarea>
+        </div>
+        <div id="dbDisclosurePreview" style="display:none">
+          <iframe id="dbDisclosurePreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:120px;background:#fff;"></iframe>
+        </div>
+        <button class="copy-btn" id="dbDisclosureCopyBtn" style="margin-top:12px">Copy Disclosure</button>
+      </div>
     </div>
   </div>
 
@@ -309,6 +323,21 @@
           <iframe id="sbPreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:300px;background:#fff;"></iframe>
         </div>
         <button class="copy-btn" id="sbCopyBtn" style="margin-top:12px">Copy HTML</button>
+      </div>
+      <div class="card">
+        <h2 class="section-title" style="margin-bottom:4px;">Editorial Newsletter Disclosure</h2>
+        <p style="font-size:13px;color:#888;margin-bottom:12px;">Paste this HTML at the bottom of the editorial newsletter that contains the sponsor block above.</p>
+        <div class="btn-group" id="sbDisclosureToggle" style="margin-bottom:16px">
+          <button data-val="code" class="active">HTML Code</button>
+          <button data-val="preview">Preview</button>
+        </div>
+        <div id="sbDisclosureCode">
+          <textarea id="sbDisclosureCodeArea" readonly style="min-height:80px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:#f9f9fb;"></textarea>
+        </div>
+        <div id="sbDisclosurePreview" style="display:none">
+          <iframe id="sbDisclosurePreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:120px;background:#fff;"></iframe>
+        </div>
+        <button class="copy-btn" id="sbDisclosureCopyBtn" style="margin-top:12px">Copy Disclosure</button>
       </div>
     </div>
   </div>
@@ -571,7 +600,6 @@
               <option value="forum">Forums (XDA-only)</option>
               <option value="quiz">Quiz Widget</option>
               <option value="showcase">Showcase Widget</option>
-              <option value="spo">Sponsored Content</option>
             </select>
           </div>
         </div>
@@ -1152,6 +1180,19 @@
     pl:  { cta: '#ed1c24', badge: '#2d8e3c' }
   };
 
+  var brandFullName = {
+    htg: 'How-To Geek',
+    xda: 'XDA',
+    muo: 'MakeUseOf',
+    ap:  'Android Police',
+    pl:  'Pocket-lint'
+  };
+
+  function buildDisclosureHtml(brand) {
+    var siteName = brandFullName[brand] || '';
+    return '<p style="font-size:12px;font-style:italic;color:#888;text-align:center;margin:24px 16px 8px 16px;line-height:1.5;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;">Readers like you help support ' + siteName + '. When you buy through links in this newsletter, we may earn a small affiliate commission, at no extra cost to you.</p>';
+  }
+
   // Default "Deals Center" CTA banner used for HTG/XDA when the Custom Banner HTML textarea is empty.
   // Imported/pasted content in that field always overrides these.
   var defaultCtaHtml = {
@@ -1512,6 +1553,9 @@
       html += '<tr><td colspan="2" style="padding:0 8px;"><hr style="border:none;border-top:1px solid #e5e5e7;margin:24px 0;" /></td></tr>\n';
     }
     html += '</table>\n';
+
+    // Affiliate disclosure footer
+    html += buildDisclosureHtml(nlBrand) + '\n';
 
     document.getElementById('nlOutputCode').value = html;
     document.getElementById('nlOutput').style.display = 'block';
@@ -1882,6 +1926,13 @@
     html += '\n</tr>\n</table>';
 
     document.getElementById('dbOutputCodeArea').value = html;
+    var disclosureHtml = buildDisclosureHtml(dbBrand);
+    document.getElementById('dbDisclosureCodeArea').value = disclosureHtml;
+    var dFrame = document.getElementById('dbDisclosurePreviewFrame');
+    dFrame.srcdoc = '<!DOCTYPE html><html><head><style>body{margin:0;padding:8px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}</style></head><body>' + disclosureHtml + '</body></html>';
+    dFrame.onload = function() {
+      try { dFrame.style.height = dFrame.contentDocument.body.scrollHeight + 16 + 'px'; } catch(e) {}
+    };
     document.getElementById('dbOutput').style.display = 'block';
 
     // Preview
@@ -1914,6 +1965,19 @@
       btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
     });
+  });
+
+  document.getElementById('dbDisclosureToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    var isPreview = e.target.dataset.val === 'preview';
+    document.getElementById('dbDisclosurePreview').style.display = isPreview ? 'block' : 'none';
+    document.getElementById('dbDisclosureCode').style.display = isPreview ? 'none' : 'block';
+  });
+
+  document.getElementById('dbDisclosureCopyBtn').addEventListener('click', function() {
+    copyWithFeedback(this, document.getElementById('dbDisclosureCodeArea').value, 'Copy Disclosure');
   });
 
   // =============================================
@@ -1984,6 +2048,13 @@
     var html = buildSponsoredBlock(img, headline, body, cta, link, colors.cta);
 
     document.getElementById('sbOutputCodeArea').value = html;
+    var sbDisclosureHtml = buildDisclosureHtml(sbBrand);
+    document.getElementById('sbDisclosureCodeArea').value = sbDisclosureHtml;
+    var sbdFrame = document.getElementById('sbDisclosurePreviewFrame');
+    sbdFrame.srcdoc = '<!DOCTYPE html><html><head><style>body{margin:0;padding:8px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}</style></head><body>' + sbDisclosureHtml + '</body></html>';
+    sbdFrame.onload = function() {
+      try { sbdFrame.style.height = sbdFrame.contentDocument.body.scrollHeight + 16 + 'px'; } catch(e) {}
+    };
     document.getElementById('sbOutput').style.display = 'block';
 
     var frame = document.getElementById('sbPreviewFrame');
@@ -2014,6 +2085,19 @@
       btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
     });
+  });
+
+  document.getElementById('sbDisclosureToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    var isPreview = e.target.dataset.val === 'preview';
+    document.getElementById('sbDisclosurePreview').style.display = isPreview ? 'block' : 'none';
+    document.getElementById('sbDisclosureCode').style.display = isPreview ? 'none' : 'block';
+  });
+
+  document.getElementById('sbDisclosureCopyBtn').addEventListener('click', function() {
+    copyWithFeedback(this, document.getElementById('sbDisclosureCodeArea').value, 'Copy Disclosure');
   });
 
   // =============================================
