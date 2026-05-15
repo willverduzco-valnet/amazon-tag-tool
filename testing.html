@@ -324,6 +324,21 @@
         </div>
         <button class="copy-btn" id="sbCopyBtn" style="margin-top:12px">Copy HTML</button>
       </div>
+      <div class="card">
+        <h2 class="section-title" style="margin-bottom:4px;">Editorial Newsletter Disclosure</h2>
+        <p style="font-size:13px;color:#888;margin-bottom:12px;">Paste this HTML at the bottom of the editorial newsletter that contains the sponsor block above.</p>
+        <div class="btn-group" id="sbDisclosureToggle" style="margin-bottom:16px">
+          <button data-val="code" class="active">HTML Code</button>
+          <button data-val="preview">Preview</button>
+        </div>
+        <div id="sbDisclosureCode">
+          <textarea id="sbDisclosureCodeArea" readonly style="min-height:80px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:#f9f9fb;"></textarea>
+        </div>
+        <div id="sbDisclosurePreview" style="display:none">
+          <iframe id="sbDisclosurePreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:120px;background:#fff;"></iframe>
+        </div>
+        <button class="copy-btn" id="sbDisclosureCopyBtn" style="margin-top:12px">Copy Disclosure</button>
+      </div>
     </div>
   </div>
 
@@ -2033,6 +2048,13 @@
     var html = buildSponsoredBlock(img, headline, body, cta, link, colors.cta);
 
     document.getElementById('sbOutputCodeArea').value = html;
+    var sbDisclosureHtml = buildDisclosureHtml(sbBrand);
+    document.getElementById('sbDisclosureCodeArea').value = sbDisclosureHtml;
+    var sbdFrame = document.getElementById('sbDisclosurePreviewFrame');
+    sbdFrame.srcdoc = '<!DOCTYPE html><html><head><style>body{margin:0;padding:8px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}</style></head><body>' + sbDisclosureHtml + '</body></html>';
+    sbdFrame.onload = function() {
+      try { sbdFrame.style.height = sbdFrame.contentDocument.body.scrollHeight + 16 + 'px'; } catch(e) {}
+    };
     document.getElementById('sbOutput').style.display = 'block';
 
     var frame = document.getElementById('sbPreviewFrame');
@@ -2063,6 +2085,19 @@
       btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
     });
+  });
+
+  document.getElementById('sbDisclosureToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    var isPreview = e.target.dataset.val === 'preview';
+    document.getElementById('sbDisclosurePreview').style.display = isPreview ? 'block' : 'none';
+    document.getElementById('sbDisclosureCode').style.display = isPreview ? 'none' : 'block';
+  });
+
+  document.getElementById('sbDisclosureCopyBtn').addEventListener('click', function() {
+    copyWithFeedback(this, document.getElementById('sbDisclosureCodeArea').value, 'Copy Disclosure');
   });
 
   // =============================================
