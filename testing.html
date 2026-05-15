@@ -245,7 +245,16 @@
       <div class="card">
         <h2 class="section-title" style="margin-bottom:4px;">Editorial Newsletter Disclosure</h2>
         <p style="font-size:13px;color:#888;margin-bottom:12px;">Paste this HTML at the bottom of the editorial newsletter that contains the deal block above.</p>
-        <textarea id="dbDisclosureCodeArea" readonly style="min-height:80px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:#f9f9fb;"></textarea>
+        <div class="btn-group" id="dbDisclosureToggle" style="margin-bottom:16px">
+          <button data-val="code" class="active">HTML Code</button>
+          <button data-val="preview">Preview</button>
+        </div>
+        <div id="dbDisclosureCode">
+          <textarea id="dbDisclosureCodeArea" readonly style="min-height:80px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:#f9f9fb;"></textarea>
+        </div>
+        <div id="dbDisclosurePreview" style="display:none">
+          <iframe id="dbDisclosurePreviewFrame" style="width:100%;border:1.5px solid #e5e5e7;border-radius:10px;min-height:120px;background:#fff;"></iframe>
+        </div>
         <button class="copy-btn" id="dbDisclosureCopyBtn" style="margin-top:12px">Copy Disclosure</button>
       </div>
     </div>
@@ -1902,7 +1911,13 @@
     html += '\n</tr>\n</table>';
 
     document.getElementById('dbOutputCodeArea').value = html;
-    document.getElementById('dbDisclosureCodeArea').value = buildDisclosureHtml(dbBrand);
+    var disclosureHtml = buildDisclosureHtml(dbBrand);
+    document.getElementById('dbDisclosureCodeArea').value = disclosureHtml;
+    var dFrame = document.getElementById('dbDisclosurePreviewFrame');
+    dFrame.srcdoc = '<!DOCTYPE html><html><head><style>body{margin:0;padding:8px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}</style></head><body>' + disclosureHtml + '</body></html>';
+    dFrame.onload = function() {
+      try { dFrame.style.height = dFrame.contentDocument.body.scrollHeight + 16 + 'px'; } catch(e) {}
+    };
     document.getElementById('dbOutput').style.display = 'block';
 
     // Preview
@@ -1935,6 +1950,15 @@
       btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copy HTML'; btn.classList.remove('copied'); }, 1500);
     });
+  });
+
+  document.getElementById('dbDisclosureToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    var isPreview = e.target.dataset.val === 'preview';
+    document.getElementById('dbDisclosurePreview').style.display = isPreview ? 'block' : 'none';
+    document.getElementById('dbDisclosureCode').style.display = isPreview ? 'none' : 'block';
   });
 
   document.getElementById('dbDisclosureCopyBtn').addEventListener('click', function() {
