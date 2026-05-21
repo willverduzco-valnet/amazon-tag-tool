@@ -121,6 +121,8 @@
         <textarea class="bulk-area" id="amzSpecialInput" placeholder="Paste any number of URLs from any brand — each URL's brand is detected from its existing tag= value, and same-ASIN URLs across brands are grouped automatically..."></textarea>
         <p style="font-size:13px;color:#888;margin-top:6px;">Brand is auto-detected from each URL's existing <code style="font-size:12px;background:#e5e5e7;padding:1px 5px;border-radius:4px;">tag=</code> value (recognizes standard <code style="font-size:12px;background:#e5e5e7;padding:1px 5px;border-radius:4px;">{brand}-...-20</code> prefixes plus the article/forum defaults). URLs are then grouped across brands by ASIN.</p>
         <div id="amzSpecialStatus" style="font-size:13px;color:#888;margin-top:8px;"></div>
+        <div id="amzSpecialSkipped"></div>
+        <div id="amzSpecialDuplicates"></div>
       </div>
 
       <div class="selectors" id="amzSelectors">
@@ -1009,22 +1011,21 @@
 
   // Parse the single Special Campaigns textarea.
   // For each line: extract tag= and ASIN; group by ASIN across brands.
-  // Returns { groups: [{ key, asin|null, urls: { brand: originalUrl } }, ...], totalLines, skippedCount, skippedSamples }.
+  // Returns { groups, totalLines, skipped: [url, ...], duplicates: [{url, brand, asin, kept}, ...] }.
   function parseSpecialInput() {
     var raw = document.getElementById('amzSpecialInput').value;
     var lines = raw.split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
 
     var groups = {};
     var order = [];
-    var skippedCount = 0;
-    var skippedSamples = [];
+    var skipped = [];
+    var duplicates = [];
 
     lines.forEach(function(url) {
       var tagMatch = url.match(/[?&]tag=([^&#\s]+)/i);
       var brand = tagMatch ? detectBrandFromTag(tagMatch[1]) : null;
       if (!brand) {
-        skippedCount++;
-        if (skippedSamples.length < 3) skippedSamples.push(url);
+        skipped.push(url);
         return;
       }
       var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
@@ -1034,8 +1035,10 @@
         groups[key] = { key: key, asin: asin, urls: {} };
         order.push(key);
       }
-      // First occurrence wins per (group, brand) — ignore duplicates within same brand
-      if (!groups[key].urls[brand]) {
+      if (groups[key].urls[brand]) {
+        // Slot already filled — record as duplicate, keep first occurrence
+        duplicates.push({ url: url, brand: brand, asin: asin, kept: groups[key].urls[brand] });
+      } else {
         groups[key].urls[brand] = url;
       }
     });
@@ -1043,8 +1046,8 @@
     return {
       groups: order.map(function(k) { return groups[k]; }),
       totalLines: lines.length,
-      skippedCount: skippedCount,
-      skippedSamples: skippedSamples
+      skipped: skipped,
+      duplicates: duplicates
     };
   }
 
@@ -1054,24 +1057,48 @@
     var box = document.getElementById('amzSpecialResultBox');
     var out = document.getElementById('amzSpecialOutput');
     var status = document.getElementById('amzSpecialStatus');
+    var skippedBox = document.getElementById('amzSpecialSkipped');
+    var dupBox = document.getElementById('amzSpecialDuplicates');
     out.innerHTML = '';
-
-    // Status line — show input summary or skip notice even if no groups
     status.innerHTML = '';
+    skippedBox.innerHTML = '';
+    dupBox.innerHTML = '';
+
     if (result.totalLines === 0) {
       box.classList.remove('visible');
       return;
     }
+
+    // Summary line
     var brandsSeen = {};
     groups.forEach(function(g) { Object.keys(g.urls).forEach(function(b) { brandsSeen[b] = true; }); });
     var brandCount = Object.keys(brandsSeen).length;
-    var parts = [];
-    parts.push('<strong style="color:#34c759;">Parsed:</strong> ' + result.totalLines + ' URL' + (result.totalLines !== 1 ? 's' : '') + ' → ' + groups.length + ' group' + (groups.length !== 1 ? 's' : '') + ' across ' + brandCount + ' brand' + (brandCount !== 1 ? 's' : ''));
-    if (result.skippedCount > 0) {
-      var sample = result.skippedSamples.length ? ' (e.g. ' + result.skippedSamples[0].slice(0, 60) + (result.skippedSamples[0].length > 60 ? '…' : '') + ')' : '';
-      parts.push('<span style="color:#ff9500;">' + result.skippedCount + ' skipped — no recognized tag' + sample + '</span>');
+    status.innerHTML = '<strong style="color:#34c759;">Parsed:</strong> ' + result.totalLines + ' URL' + (result.totalLines !== 1 ? 's' : '') + ' → ' + groups.length + ' group' + (groups.length !== 1 ? 's' : '') + ' across ' + brandCount + ' brand' + (brandCount !== 1 ? 's' : '') + '.';
+
+    // Skipped warning — list every unparseable URL
+    if (result.skipped.length > 0) {
+      var skippedHtml = '<div style="background:#fff8ef;border:1.5px solid #ff9500;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:13px;color:#1d1d1f;">';
+      skippedHtml += '<div style="font-weight:700;color:#ff9500;margin-bottom:8px;">' + result.skipped.length + ' URL' + (result.skipped.length !== 1 ? 's' : '') + " couldn't be parsed — no recognized brand tag</div>";
+      skippedHtml += '<ul style="margin:0;padding-left:18px;font-family:\'SF Mono\',\'Fira Code\',monospace;font-size:11px;line-height:1.6;word-break:break-all;">';
+      result.skipped.forEach(function(url) {
+        skippedHtml += '<li>' + esc(url) + '</li>';
+      });
+      skippedHtml += '</ul></div>';
+      skippedBox.innerHTML = skippedHtml;
     }
-    status.innerHTML = parts.join('. ') + '.';
+
+    // Duplicates warning — list every collision with its kept original
+    if (result.duplicates.length > 0) {
+      var dupHtml = '<div style="background:#fff8ef;border:1.5px solid #ff9500;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:13px;color:#1d1d1f;">';
+      dupHtml += '<div style="font-weight:700;color:#ff9500;margin-bottom:8px;">' + result.duplicates.length + ' duplicate' + (result.duplicates.length !== 1 ? 's' : '') + ' — same brand + ASIN as an earlier URL (first one was kept)</div>';
+      dupHtml += '<ul style="margin:0;padding-left:18px;font-family:\'SF Mono\',\'Fira Code\',monospace;font-size:11px;line-height:1.6;word-break:break-all;">';
+      result.duplicates.forEach(function(d) {
+        var label = d.brand.toUpperCase() + (d.asin ? ' / ' + d.asin : '');
+        dupHtml += '<li><span style="font-weight:700;">[' + label + ']</span> ' + esc(d.url) + '<br><span style="color:#999;font-size:10px;">&nbsp;&nbsp;kept earlier: ' + esc(d.kept) + '</span></li>';
+      });
+      dupHtml += '</ul></div>';
+      dupBox.innerHTML = dupHtml;
+    }
 
     if (!groups.length) {
       box.classList.add('visible');
