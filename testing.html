@@ -117,9 +117,27 @@
 
       <!-- Special Campaigns mode -->
       <div id="amzSpecialMode" style="display:none">
-        <label>Amazon URLs for special campaigns (one per line)</label>
-        <textarea class="bulk-area" id="amzSpecialInput" placeholder="Paste URLs here — each one will be retagged across all 5 brands × 5 purposes..."></textarea>
-        <p style="font-size:13px;color:#888;margin-top:6px;">Each URL keeps its exact original form. Only the affiliate <code style="font-size:12px;background:#e5e5e7;padding:1px 5px;border-radius:4px;">tag=</code> parameter is swapped to all 25 brand × purpose variants.</p>
+        <p style="font-size:13px;color:#888;margin-bottom:12px;">Paste each brand's campaign URLs in its textarea. URLs are grouped across brands by ASIN — same ASIN in HTG and XDA inputs produces one card with both brand rows populated. URLs without an ASIN form their own single-brand card. Empty brand rows are hidden.</p>
+        <div class="field-row" style="margin-bottom:8px;">
+          <label>HTG URLs <span style="font-size:11px;color:#999;font-weight:400;text-transform:none;letter-spacing:0;">(one per line)</span></label>
+          <textarea class="bulk-area amz-special-brand" data-brand="htg" id="amzSpecialInputHtg" placeholder="HTG campaign URLs..." style="min-height:60px;"></textarea>
+        </div>
+        <div class="field-row" style="margin-bottom:8px;">
+          <label>XDA URLs <span style="font-size:11px;color:#999;font-weight:400;text-transform:none;letter-spacing:0;">(one per line)</span></label>
+          <textarea class="bulk-area amz-special-brand" data-brand="xda" id="amzSpecialInputXda" placeholder="XDA campaign URLs..." style="min-height:60px;"></textarea>
+        </div>
+        <div class="field-row" style="margin-bottom:8px;">
+          <label>MUO URLs <span style="font-size:11px;color:#999;font-weight:400;text-transform:none;letter-spacing:0;">(one per line)</span></label>
+          <textarea class="bulk-area amz-special-brand" data-brand="muo" id="amzSpecialInputMuo" placeholder="MUO campaign URLs..." style="min-height:60px;"></textarea>
+        </div>
+        <div class="field-row" style="margin-bottom:8px;">
+          <label>AP URLs <span style="font-size:11px;color:#999;font-weight:400;text-transform:none;letter-spacing:0;">(one per line)</span></label>
+          <textarea class="bulk-area amz-special-brand" data-brand="ap" id="amzSpecialInputAp" placeholder="AP campaign URLs..." style="min-height:60px;"></textarea>
+        </div>
+        <div class="field-row" style="margin-bottom:8px;">
+          <label>PL URLs <span style="font-size:11px;color:#999;font-weight:400;text-transform:none;letter-spacing:0;">(one per line)</span></label>
+          <textarea class="bulk-area amz-special-brand" data-brand="pl" id="amzSpecialInputPl" placeholder="PL campaign URLs..." style="min-height:60px;"></textarea>
+        </div>
       </div>
 
       <div class="selectors" id="amzSelectors">
@@ -986,21 +1004,64 @@
     { key: 'showcase', label: 'Product Showcase' }
   ];
 
+  // Read URLs from all 5 brand textareas and group across brands.
+  // Same ASIN across brands → one group. URLs without an ASIN → one group each.
+  // Returns: [{ key, asin|null, urls: { brand: originalUrl } }, ...] in first-seen order.
+  function collectSpecialGroups() {
+    var groups = {};
+    var order = [];
+    fpSpecialBrands.forEach(function(brand) {
+      var el = document.getElementById('amzSpecialInput' + brand.charAt(0).toUpperCase() + brand.slice(1));
+      var lines = el.value.split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+      lines.forEach(function(url) {
+        var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+        var asin = asinMatch ? asinMatch[1].toUpperCase() : null;
+        var key = asin ? 'ASIN:' + asin : 'URL:' + brand + '::' + url;
+        if (!groups[key]) {
+          groups[key] = { key: key, asin: asin, urls: {} };
+          order.push(key);
+        }
+        // First occurrence wins per (group, brand) — ignore duplicates within same brand
+        if (!groups[key].urls[brand]) {
+          groups[key].urls[brand] = url;
+        }
+      });
+    });
+    return order.map(function(k) { return groups[k]; });
+  }
+
   function generateAmzSpecial() {
-    var lines = document.getElementById('amzSpecialInput').value.split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+    var groups = collectSpecialGroups();
     var box = document.getElementById('amzSpecialResultBox');
     var out = document.getElementById('amzSpecialOutput');
     out.innerHTML = '';
-    if (!lines.length) { box.classList.remove('visible'); return; }
+    if (!groups.length) { box.classList.remove('visible'); return; }
 
-    lines.forEach(function(url) {
+    groups.forEach(function(group) {
       var card = document.createElement('div');
       card.style.cssText = 'border:1.5px solid #e5e5e7;border-radius:10px;padding:14px;margin-bottom:12px;background:#fff;';
 
+      // Header — ASIN or "No ASIN"
       var header = document.createElement('div');
-      header.style.cssText = 'font-family:"SF Mono","Fira Code",monospace;font-size:12px;word-break:break-all;color:#1d1d1f;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;';
-      header.textContent = url;
+      header.style.cssText = 'font-size:13px;font-weight:600;color:#1d1d1f;margin-bottom:8px;';
+      header.textContent = group.asin ? 'ASIN: ' + group.asin : 'No ASIN (single-brand URL)';
       card.appendChild(header);
+
+      // Sub-list of original URLs per brand
+      var urlList = document.createElement('div');
+      urlList.style.cssText = 'font-family:"SF Mono","Fira Code",monospace;font-size:11px;color:#666;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;line-height:1.5;';
+      fpSpecialBrands.forEach(function(brand) {
+        if (!group.urls[brand]) return;
+        var line = document.createElement('div');
+        line.style.cssText = 'word-break:break-all;';
+        var brandLabel = document.createElement('span');
+        brandLabel.style.cssText = 'display:inline-block;min-width:36px;font-weight:700;color:#1d1d1f;';
+        brandLabel.textContent = brand.toUpperCase() + ':';
+        line.appendChild(brandLabel);
+        line.appendChild(document.createTextNode(' ' + group.urls[brand]));
+        urlList.appendChild(line);
+      });
+      card.appendChild(urlList);
 
       var wrap = document.createElement('div');
       wrap.style.cssText = 'overflow-x:auto;';
@@ -1017,11 +1078,13 @@
 
       var tbody = document.createElement('tbody');
       fpSpecialBrands.forEach(function(brand) {
+        var sourceUrl = group.urls[brand];
+        if (!sourceUrl) return; // skip rows with no URL for this brand
         var row = document.createElement('tr');
         row.appendChild(makeSpecialTh(brand.toUpperCase()));
         fpSpecialPurposes.forEach(function(p) {
           var tag = getTag(brand, p.key);
-          var tagged = swapAffiliateTag(url, tag);
+          var tagged = swapAffiliateTag(sourceUrl, tag);
           var cell = document.createElement('td');
           cell.textContent = tag;
           cell.title = tagged;
@@ -1065,20 +1128,30 @@
   }
 
   function exportAmzSpecialCsv() {
-    var lines = document.getElementById('amzSpecialInput').value.split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
-    if (!lines.length) return;
+    var groups = collectSpecialGroups();
+    if (!groups.length) return;
 
     var rows = [];
-    lines.forEach(function(url, idx) {
+    groups.forEach(function(group, idx) {
       if (idx > 0) rows.push(['']);
-      rows.push([csvEscape('Original URL: ' + url)]);
+      var headerLabel = group.asin ? 'ASIN: ' + group.asin : 'No ASIN (single-brand URL)';
+      rows.push([csvEscape(headerLabel)]);
+      // Original URLs sub-block
+      fpSpecialBrands.forEach(function(brand) {
+        if (!group.urls[brand]) return;
+        rows.push([csvEscape(brand.toUpperCase() + ' original'), csvEscape(group.urls[brand])]);
+      });
+      // Grid header
       var headRow = [''];
       fpSpecialPurposes.forEach(function(p) { headRow.push(csvEscape(p.label)); });
       rows.push(headRow);
+      // Grid body — only populated brand rows
       fpSpecialBrands.forEach(function(brand) {
+        var sourceUrl = group.urls[brand];
+        if (!sourceUrl) return;
         var row = [brand.toUpperCase()];
         fpSpecialPurposes.forEach(function(p) {
-          row.push(csvEscape(swapAffiliateTag(url, getTag(brand, p.key))));
+          row.push(csvEscape(swapAffiliateTag(sourceUrl, getTag(brand, p.key))));
         });
         rows.push(row);
       });
@@ -1093,7 +1166,9 @@
     URL.revokeObjectURL(a.href);
   }
 
-  document.getElementById('amzSpecialInput').addEventListener('input', generateAmzSpecial);
+  document.querySelectorAll('.amz-special-brand').forEach(function(el) {
+    el.addEventListener('input', generateAmzSpecial);
+  });
   document.getElementById('amzSpecialExportBtn').addEventListener('click', exportAmzSpecialCsv);
 
   // =============================================
