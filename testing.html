@@ -95,9 +95,10 @@
     <div class="card">
       <h1>Amazon Tag Tool</h1>
 
-      <div class="mode-toggle" id="amzModeToggle">
+      <div class="mode-toggle" id="amzModeToggle" style="max-width:320px;">
         <button class="active" data-val="single">Single</button>
         <button data-val="bulk">Bulk</button>
+        <button data-val="special">Special</button>
       </div>
 
       <!-- Single mode -->
@@ -114,7 +115,14 @@
         <div class="error" id="amzBulkError"></div>
       </div>
 
-      <div class="selectors">
+      <!-- Special Campaigns mode -->
+      <div id="amzSpecialMode" style="display:none">
+        <label>Amazon URLs for special campaigns (one per line)</label>
+        <textarea class="bulk-area" id="amzSpecialInput" placeholder="Paste URLs here — each one will be retagged across all 5 brands × 5 purposes..."></textarea>
+        <p style="font-size:13px;color:#888;margin-top:6px;">Each URL keeps its exact original form. Only the affiliate <code style="font-size:12px;background:#e5e5e7;padding:1px 5px;border-radius:4px;">tag=</code> parameter is swapped to all 25 brand × purpose variants.</p>
+      </div>
+
+      <div class="selectors" id="amzSelectors">
         <div class="selector-group">
           <label>Site</label>
           <div class="btn-group" id="siteGroup">
@@ -153,6 +161,13 @@
         <textarea class="bulk-area bulk-output" id="amzBulkOutput" readonly></textarea>
         <div class="bulk-count" id="amzBulkCount"></div>
         <button class="copy-btn" id="amzBulkCopyBtn">Copy All to Clipboard</button>
+      </div>
+
+      <!-- Special Campaigns result -->
+      <div class="result-box" id="amzSpecialResultBox">
+        <label>Retagged Variants (click any cell to copy the full URL)</label>
+        <div id="amzSpecialOutput"></div>
+        <button class="copy-btn" id="amzSpecialExportBtn" style="background:#555;">Export CSV</button>
       </div>
 
       <div style="margin-top:24px;padding:16px;background:#f9f9fb;border-radius:10px;font-size:13px;color:#666;line-height:1.6;">
@@ -685,9 +700,20 @@
     return 'https://amazon.com/dp/' + m[1] + '?tag=' + tagId;
   }
 
+  // Default/article (account-level) tag per brand — used when purpose is "article"
+  var brandArticleTag = {
+    htg: 'hotoge-20',
+    xda: 'xdadev04-20',
+    muo: 'mak041-20',
+    ap:  'beepla-20',
+    pl:  'pocketlintc07-20'
+  };
+
   function getTag(brand, purpose) {
     // Forums purpose uses a single XDA-only tag regardless of selected brand
     if (purpose === 'forum') return 'xdaforum01-20';
+    // Article purpose uses the brand's default account-level tag
+    if (purpose === 'article') return brandArticleTag[brand] || (brand + '-20');
     // AP general-newsletter is non-standard
     if (brand === 'ap' && purpose === 'newsletter') return 'ap-newsletter04-20';
     return brand + '-' + purpose + '-20';
@@ -856,11 +882,20 @@
     document.getElementById('siteGroup').classList.toggle('disabled', purpose === 'forum');
     generateAmz();
   });
-  initModeToggle('amzModeToggle', 'amzSingleMode', 'amzBulkMode', function(mode) {
-    amzMode = mode;
-    // Hide both result boxes on mode switch
+  document.getElementById('amzModeToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    amzMode = e.target.dataset.val;
+    document.getElementById('amzSingleMode').style.display = amzMode === 'single' ? '' : 'none';
+    document.getElementById('amzBulkMode').style.display = amzMode === 'bulk' ? '' : 'none';
+    document.getElementById('amzSpecialMode').style.display = amzMode === 'special' ? '' : 'none';
+    // Brand/purpose selectors don't apply in special mode (all 25 variants generated)
+    document.getElementById('amzSelectors').style.display = amzMode === 'special' ? 'none' : '';
+    // Hide all result boxes on mode switch
     resultBox.classList.remove('visible');
     document.getElementById('amzBulkResultBox').classList.remove('visible');
+    document.getElementById('amzSpecialResultBox').classList.remove('visible');
   });
 
   urlInput.addEventListener('input', generateAmz);
@@ -928,6 +963,138 @@
   document.getElementById('amzBulkCopyBtn').addEventListener('click', function() {
     copyWithFeedback(this, document.getElementById('amzBulkOutput').value, 'Copy All to Clipboard');
   });
+
+  // ----- Special Campaigns mode -----
+  // Preserve the URL exactly; only swap the value of the tag= query param.
+  function swapAffiliateTag(url, newTag) {
+    if (/[?&]tag=/.test(url)) {
+      return url.replace(/([?&]tag=)[^&#]*/, '$1' + newTag);
+    }
+    var hashIdx = url.indexOf('#');
+    var hash = hashIdx !== -1 ? url.substring(hashIdx) : '';
+    var base = hashIdx !== -1 ? url.substring(0, hashIdx) : url;
+    var sep = base.indexOf('?') !== -1 ? '&' : '?';
+    return base + sep + 'tag=' + newTag + hash;
+  }
+
+  var fpSpecialBrands = ['htg', 'xda', 'muo', 'ap', 'pl'];
+  var fpSpecialPurposes = [
+    { key: 'tcp', label: 'Deals Center' },
+    { key: 'dealnewsletter', label: 'Deals Newsletter' },
+    { key: 'newsletter', label: 'General Newsletter' },
+    { key: 'article', label: 'Article' },
+    { key: 'showcase', label: 'Product Showcase' }
+  ];
+
+  function generateAmzSpecial() {
+    var lines = document.getElementById('amzSpecialInput').value.split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+    var box = document.getElementById('amzSpecialResultBox');
+    var out = document.getElementById('amzSpecialOutput');
+    out.innerHTML = '';
+    if (!lines.length) { box.classList.remove('visible'); return; }
+
+    lines.forEach(function(url) {
+      var card = document.createElement('div');
+      card.style.cssText = 'border:1.5px solid #e5e5e7;border-radius:10px;padding:14px;margin-bottom:12px;background:#fff;';
+
+      var header = document.createElement('div');
+      header.style.cssText = 'font-family:"SF Mono","Fira Code",monospace;font-size:12px;word-break:break-all;color:#1d1d1f;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;';
+      header.textContent = url;
+      card.appendChild(header);
+
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'overflow-x:auto;';
+
+      var table = document.createElement('table');
+      table.style.cssText = 'border-collapse:collapse;width:100%;font-size:11px;font-family:"SF Mono","Fira Code",monospace;';
+
+      var thead = document.createElement('thead');
+      var headRow = document.createElement('tr');
+      headRow.appendChild(makeSpecialTh(''));
+      fpSpecialPurposes.forEach(function(p) { headRow.appendChild(makeSpecialTh(p.label)); });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      var tbody = document.createElement('tbody');
+      fpSpecialBrands.forEach(function(brand) {
+        var row = document.createElement('tr');
+        row.appendChild(makeSpecialTh(brand.toUpperCase()));
+        fpSpecialPurposes.forEach(function(p) {
+          var tag = getTag(brand, p.key);
+          var tagged = swapAffiliateTag(url, tag);
+          var cell = document.createElement('td');
+          cell.textContent = tag;
+          cell.title = tagged;
+          cell.style.cssText = 'padding:6px 10px;border:1px solid #e5e5e7;cursor:pointer;white-space:nowrap;background:#fff;transition:background .1s;';
+          cell.addEventListener('mouseenter', function() { if (!cell.dataset.copied) cell.style.background = '#f0f0f0'; });
+          cell.addEventListener('mouseleave', function() { if (!cell.dataset.copied) cell.style.background = '#fff'; });
+          cell.addEventListener('click', function() {
+            navigator.clipboard.writeText(tagged).then(function() {
+              var orig = cell.textContent;
+              cell.dataset.copied = '1';
+              cell.textContent = 'Copied!';
+              cell.style.background = '#34c759';
+              cell.style.color = '#fff';
+              setTimeout(function() {
+                cell.textContent = orig;
+                cell.style.background = '#fff';
+                cell.style.color = '';
+                delete cell.dataset.copied;
+              }, 1000);
+            });
+          });
+          row.appendChild(cell);
+        });
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+
+      wrap.appendChild(table);
+      card.appendChild(wrap);
+      out.appendChild(card);
+    });
+
+    box.classList.add('visible');
+  }
+
+  function makeSpecialTh(text) {
+    var th = document.createElement('th');
+    th.textContent = text;
+    th.style.cssText = 'padding:6px 10px;border:1px solid #e5e5e7;background:#f5f5f7;font-weight:600;text-align:left;white-space:nowrap;';
+    return th;
+  }
+
+  function exportAmzSpecialCsv() {
+    var lines = document.getElementById('amzSpecialInput').value.split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+    if (!lines.length) return;
+
+    var rows = [];
+    lines.forEach(function(url, idx) {
+      if (idx > 0) rows.push(['']);
+      rows.push([csvEscape('Original URL: ' + url)]);
+      var headRow = [''];
+      fpSpecialPurposes.forEach(function(p) { headRow.push(csvEscape(p.label)); });
+      rows.push(headRow);
+      fpSpecialBrands.forEach(function(brand) {
+        var row = [brand.toUpperCase()];
+        fpSpecialPurposes.forEach(function(p) {
+          row.push(csvEscape(swapAffiliateTag(url, getTag(brand, p.key))));
+        });
+        rows.push(row);
+      });
+    });
+
+    var csv = rows.map(function(r) { return r.join(','); }).join('\n');
+    var blob = new Blob([csv], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'special-campaigns-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  document.getElementById('amzSpecialInput').addEventListener('input', generateAmzSpecial);
+  document.getElementById('amzSpecialExportBtn').addEventListener('click', exportAmzSpecialCsv);
 
   // =============================================
   // URL Cleaner tab
