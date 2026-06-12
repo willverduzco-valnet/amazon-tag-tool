@@ -95,9 +95,10 @@
     <div class="card">
       <h1>Amazon Tag Tool</h1>
 
-      <div class="mode-toggle" id="amzModeToggle">
+      <div class="mode-toggle" id="amzModeToggle" style="max-width:320px;">
         <button class="active" data-val="single">Single</button>
         <button data-val="bulk">Bulk</button>
+        <button data-val="special">Special</button>
       </div>
 
       <!-- Single mode -->
@@ -114,7 +115,17 @@
         <div class="error" id="amzBulkError"></div>
       </div>
 
-      <div class="selectors">
+      <!-- Special Campaigns mode -->
+      <div id="amzSpecialMode" style="display:none">
+        <label>Campaign URLs (any brand, one per line)</label>
+        <textarea class="bulk-area" id="amzSpecialInput" placeholder="Paste any number of URLs from any brand — each URL's brand is detected from its existing tag= value, and same-ASIN URLs across brands are grouped automatically..."></textarea>
+        <p style="font-size:13px;color:#888;margin-top:6px;">Brand is auto-detected from each URL's existing <code style="font-size:12px;background:#e5e5e7;padding:1px 5px;border-radius:4px;">tag=</code> value (recognizes standard <code style="font-size:12px;background:#e5e5e7;padding:1px 5px;border-radius:4px;">{brand}-...-20</code> prefixes plus the article/forum defaults). URLs are then grouped across brands by ASIN.</p>
+        <div id="amzSpecialStatus" style="font-size:13px;color:#888;margin-top:8px;"></div>
+        <div id="amzSpecialSkipped"></div>
+        <div id="amzSpecialDuplicates"></div>
+      </div>
+
+      <div class="selectors" id="amzSelectors">
         <div class="selector-group">
           <label>Site</label>
           <div class="btn-group" id="siteGroup">
@@ -136,6 +147,7 @@
             <option value="forum">Forums (XDA-only)</option>
             <option value="quiz">Quiz Widget</option>
             <option value="showcase">Showcase Widget</option>
+            <option value="spo">Sponsored</option>
           </select>
         </div>
       </div>
@@ -153,6 +165,13 @@
         <textarea class="bulk-area bulk-output" id="amzBulkOutput" readonly></textarea>
         <div class="bulk-count" id="amzBulkCount"></div>
         <button class="copy-btn" id="amzBulkCopyBtn">Copy All to Clipboard</button>
+      </div>
+
+      <!-- Special Campaigns result -->
+      <div class="result-box" id="amzSpecialResultBox">
+        <label>Retagged Variants (click any cell to copy the full URL)</label>
+        <div id="amzSpecialOutput"></div>
+        <button class="copy-btn" id="amzSpecialExportBtn" style="background:#555;">Export CSV</button>
       </div>
 
       <div style="margin-top:24px;padding:16px;background:#f9f9fb;border-radius:10px;font-size:13px;color:#666;line-height:1.6;">
@@ -305,6 +324,10 @@
           <label>CTA Link</label>
           <input type="text" id="sbLink" placeholder="https://...">
         </div>
+      </div>
+      <div class="field-row" style="margin-top:12px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" id="sbBypass" checked> Bypass link processing</label>
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" id="sbShowLabel" checked> Show "SPONSORED" label</label>
       </div>
     </div>
 
@@ -518,6 +541,10 @@
           <input type="text" id="nlSponsoredLink" placeholder="https://...">
         </div>
       </div>
+      <div class="field-row" style="margin-top:12px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" id="nlSponsoredBypass" checked> Bypass link processing</label>
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" id="nlSponsoredShowLabel" checked> Show "SPONSORED" label</label>
+      </div>
       <div class="field-row" style="margin-top:12px">
         <label>Insert after row #</label>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -600,6 +627,7 @@
               <option value="forum">Forums (XDA-only)</option>
               <option value="quiz">Quiz Widget</option>
               <option value="showcase">Showcase Widget</option>
+              <option value="spo">Sponsored</option>
             </select>
           </div>
         </div>
@@ -685,9 +713,20 @@
     return 'https://amazon.com/dp/' + m[1] + '?tag=' + tagId;
   }
 
+  // Default/article (account-level) tag per brand — used when purpose is "article"
+  var brandArticleTag = {
+    htg: 'hotoge-20',
+    xda: 'xdadev04-20',
+    muo: 'mak041-20',
+    ap:  'beepla-20',
+    pl:  'pocketlintc07-20'
+  };
+
   function getTag(brand, purpose) {
     // Forums purpose uses a single XDA-only tag regardless of selected brand
     if (purpose === 'forum') return 'xdaforum01-20';
+    // Article purpose uses the brand's default account-level tag
+    if (purpose === 'article') return brandArticleTag[brand] || (brand + '-20');
     // AP general-newsletter is non-standard
     if (brand === 'ap' && purpose === 'newsletter') return 'ap-newsletter04-20';
     return brand + '-' + purpose + '-20';
@@ -856,11 +895,20 @@
     document.getElementById('siteGroup').classList.toggle('disabled', purpose === 'forum');
     generateAmz();
   });
-  initModeToggle('amzModeToggle', 'amzSingleMode', 'amzBulkMode', function(mode) {
-    amzMode = mode;
-    // Hide both result boxes on mode switch
+  document.getElementById('amzModeToggle').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    amzMode = e.target.dataset.val;
+    document.getElementById('amzSingleMode').style.display = amzMode === 'single' ? '' : 'none';
+    document.getElementById('amzBulkMode').style.display = amzMode === 'bulk' ? '' : 'none';
+    document.getElementById('amzSpecialMode').style.display = amzMode === 'special' ? '' : 'none';
+    // Brand/purpose selectors don't apply in special mode (all 25 variants generated)
+    document.getElementById('amzSelectors').style.display = amzMode === 'special' ? 'none' : '';
+    // Hide all result boxes on mode switch
     resultBox.classList.remove('visible');
     document.getElementById('amzBulkResultBox').classList.remove('visible');
+    document.getElementById('amzSpecialResultBox').classList.remove('visible');
   });
 
   urlInput.addEventListener('input', generateAmz);
@@ -928,6 +976,276 @@
   document.getElementById('amzBulkCopyBtn').addEventListener('click', function() {
     copyWithFeedback(this, document.getElementById('amzBulkOutput').value, 'Copy All to Clipboard');
   });
+
+  // ----- Special Campaigns mode -----
+  // Preserve the URL exactly; only swap the value of the tag= query param.
+  function swapAffiliateTag(url, newTag) {
+    if (/[?&]tag=/.test(url)) {
+      return url.replace(/([?&]tag=)[^&#]*/, '$1' + newTag);
+    }
+    var hashIdx = url.indexOf('#');
+    var hash = hashIdx !== -1 ? url.substring(hashIdx) : '';
+    var base = hashIdx !== -1 ? url.substring(0, hashIdx) : url;
+    var sep = base.indexOf('?') !== -1 ? '&' : '?';
+    return base + sep + 'tag=' + newTag + hash;
+  }
+
+  var fpSpecialBrands = ['htg', 'xda', 'muo', 'ap', 'pl'];
+  var fpSpecialPurposes = [
+    { key: 'tcp', label: 'Deals Center' },
+    { key: 'dealnewsletter', label: 'Deals Newsletter' },
+    { key: 'newsletter', label: 'General Newsletter' },
+    { key: 'article', label: 'Article' },
+    { key: 'showcase', label: 'Product Showcase' }
+  ];
+
+  // Detect brand from an Amazon affiliate tag value.
+  // Recognizes the standard {brand}-...-20 prefixes plus the per-brand article/forum defaults.
+  function detectBrandFromTag(tag) {
+    if (!tag) return null;
+    var lower = tag.toLowerCase();
+    // Per-brand article/default tags (exact match)
+    for (var brand in brandArticleTag) {
+      if (brandArticleTag[brand].toLowerCase() === lower) return brand;
+    }
+    // XDA forum tag
+    if (lower === 'xdaforum01-20') return 'xda';
+    // Standard {brand}- prefix
+    if (lower.indexOf('htg-') === 0) return 'htg';
+    if (lower.indexOf('xda-') === 0) return 'xda';
+    if (lower.indexOf('muo-') === 0) return 'muo';
+    if (lower.indexOf('ap-')  === 0) return 'ap';
+    if (lower.indexOf('pl-')  === 0) return 'pl';
+    return null;
+  }
+
+  // Parse the single Special Campaigns textarea.
+  // For each line: extract tag= and ASIN; group by ASIN across brands.
+  // Returns { groups, totalLines, skipped: [url, ...], duplicates: [{url, brand, asin, kept}, ...] }.
+  function parseSpecialInput() {
+    var raw = document.getElementById('amzSpecialInput').value;
+    var lines = raw.split(/\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+
+    var groups = {};
+    var order = [];
+    var skipped = [];
+    var duplicates = [];
+
+    lines.forEach(function(url) {
+      var tagMatch = url.match(/[?&]tag=([^&#\s]+)/i);
+      var brand = tagMatch ? detectBrandFromTag(tagMatch[1]) : null;
+      if (!brand) {
+        skipped.push(url);
+        return;
+      }
+      var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+      var asin = asinMatch ? asinMatch[1].toUpperCase() : null;
+      var key = asin ? 'ASIN:' + asin : 'URL:' + brand + '::' + url;
+      if (!groups[key]) {
+        groups[key] = { key: key, asin: asin, urls: {} };
+        order.push(key);
+      }
+      if (groups[key].urls[brand]) {
+        // Slot already filled — record as duplicate, keep first occurrence
+        duplicates.push({ url: url, brand: brand, asin: asin, kept: groups[key].urls[brand] });
+      } else {
+        groups[key].urls[brand] = url;
+      }
+    });
+
+    return {
+      groups: order.map(function(k) { return groups[k]; }),
+      totalLines: lines.length,
+      skipped: skipped,
+      duplicates: duplicates
+    };
+  }
+
+  function generateAmzSpecial() {
+    var result = parseSpecialInput();
+    var groups = result.groups;
+    var box = document.getElementById('amzSpecialResultBox');
+    var out = document.getElementById('amzSpecialOutput');
+    var status = document.getElementById('amzSpecialStatus');
+    var skippedBox = document.getElementById('amzSpecialSkipped');
+    var dupBox = document.getElementById('amzSpecialDuplicates');
+    out.innerHTML = '';
+    status.innerHTML = '';
+    skippedBox.innerHTML = '';
+    dupBox.innerHTML = '';
+
+    if (result.totalLines === 0) {
+      box.classList.remove('visible');
+      return;
+    }
+
+    // Summary line
+    var brandsSeen = {};
+    groups.forEach(function(g) { Object.keys(g.urls).forEach(function(b) { brandsSeen[b] = true; }); });
+    var brandCount = Object.keys(brandsSeen).length;
+    status.innerHTML = '<strong style="color:#34c759;">Parsed:</strong> ' + result.totalLines + ' URL' + (result.totalLines !== 1 ? 's' : '') + ' → ' + groups.length + ' group' + (groups.length !== 1 ? 's' : '') + ' across ' + brandCount + ' brand' + (brandCount !== 1 ? 's' : '') + '.';
+
+    // Skipped warning — list every unparseable URL
+    if (result.skipped.length > 0) {
+      var skippedHtml = '<div style="background:#fff8ef;border:1.5px solid #ff9500;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:13px;color:#1d1d1f;">';
+      skippedHtml += '<div style="font-weight:700;color:#ff9500;margin-bottom:8px;">' + result.skipped.length + ' URL' + (result.skipped.length !== 1 ? 's' : '') + " couldn't be parsed — no recognized brand tag</div>";
+      skippedHtml += '<ul style="margin:0;padding-left:18px;font-family:\'SF Mono\',\'Fira Code\',monospace;font-size:11px;line-height:1.6;word-break:break-all;">';
+      result.skipped.forEach(function(url) {
+        skippedHtml += '<li>' + esc(url) + '</li>';
+      });
+      skippedHtml += '</ul></div>';
+      skippedBox.innerHTML = skippedHtml;
+    }
+
+    // Duplicates warning — list every collision with its kept original
+    if (result.duplicates.length > 0) {
+      var dupHtml = '<div style="background:#fff8ef;border:1.5px solid #ff9500;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:13px;color:#1d1d1f;">';
+      dupHtml += '<div style="font-weight:700;color:#ff9500;margin-bottom:8px;">' + result.duplicates.length + ' duplicate' + (result.duplicates.length !== 1 ? 's' : '') + ' — same brand + ASIN as an earlier URL (first one was kept)</div>';
+      dupHtml += '<ul style="margin:0;padding-left:18px;font-family:\'SF Mono\',\'Fira Code\',monospace;font-size:11px;line-height:1.6;word-break:break-all;">';
+      result.duplicates.forEach(function(d) {
+        var label = d.brand.toUpperCase() + (d.asin ? ' / ' + d.asin : '');
+        dupHtml += '<li><span style="font-weight:700;">[' + label + ']</span> ' + esc(d.url) + '<br><span style="color:#999;font-size:10px;">&nbsp;&nbsp;kept earlier: ' + esc(d.kept) + '</span></li>';
+      });
+      dupHtml += '</ul></div>';
+      dupBox.innerHTML = dupHtml;
+    }
+
+    if (!groups.length) {
+      box.classList.add('visible');
+      return;
+    }
+
+    groups.forEach(function(group) {
+      var card = document.createElement('div');
+      card.style.cssText = 'border:1.5px solid #e5e5e7;border-radius:10px;padding:14px;margin-bottom:12px;background:#fff;';
+
+      // Header — ASIN or "No ASIN"
+      var header = document.createElement('div');
+      header.style.cssText = 'font-size:13px;font-weight:600;color:#1d1d1f;margin-bottom:8px;';
+      header.textContent = group.asin ? 'ASIN: ' + group.asin : 'No ASIN (single-brand URL)';
+      card.appendChild(header);
+
+      // Sub-list of original URLs per brand
+      var urlList = document.createElement('div');
+      urlList.style.cssText = 'font-family:"SF Mono","Fira Code",monospace;font-size:11px;color:#666;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;line-height:1.5;';
+      fpSpecialBrands.forEach(function(brand) {
+        if (!group.urls[brand]) return;
+        var line = document.createElement('div');
+        line.style.cssText = 'word-break:break-all;';
+        var brandLabel = document.createElement('span');
+        brandLabel.style.cssText = 'display:inline-block;min-width:36px;font-weight:700;color:#1d1d1f;';
+        brandLabel.textContent = brand.toUpperCase() + ':';
+        line.appendChild(brandLabel);
+        line.appendChild(document.createTextNode(' ' + group.urls[brand]));
+        urlList.appendChild(line);
+      });
+      card.appendChild(urlList);
+
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'overflow-x:auto;';
+
+      var table = document.createElement('table');
+      table.style.cssText = 'border-collapse:collapse;width:100%;font-size:11px;font-family:"SF Mono","Fira Code",monospace;';
+
+      var thead = document.createElement('thead');
+      var headRow = document.createElement('tr');
+      headRow.appendChild(makeSpecialTh(''));
+      fpSpecialPurposes.forEach(function(p) { headRow.appendChild(makeSpecialTh(p.label)); });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      var tbody = document.createElement('tbody');
+      fpSpecialBrands.forEach(function(brand) {
+        var sourceUrl = group.urls[brand];
+        if (!sourceUrl) return; // skip rows with no URL for this brand
+        var row = document.createElement('tr');
+        row.appendChild(makeSpecialTh(brand.toUpperCase()));
+        fpSpecialPurposes.forEach(function(p) {
+          var tag = getTag(brand, p.key);
+          var tagged = swapAffiliateTag(sourceUrl, tag);
+          var cell = document.createElement('td');
+          cell.textContent = tag;
+          cell.title = tagged;
+          cell.style.cssText = 'padding:6px 10px;border:1px solid #e5e5e7;cursor:pointer;white-space:nowrap;background:#fff;transition:background .1s;';
+          cell.addEventListener('mouseenter', function() { if (!cell.dataset.copied) cell.style.background = '#f0f0f0'; });
+          cell.addEventListener('mouseleave', function() { if (!cell.dataset.copied) cell.style.background = '#fff'; });
+          cell.addEventListener('click', function() {
+            navigator.clipboard.writeText(tagged).then(function() {
+              var orig = cell.textContent;
+              cell.dataset.copied = '1';
+              cell.textContent = 'Copied!';
+              cell.style.background = '#34c759';
+              cell.style.color = '#fff';
+              setTimeout(function() {
+                cell.textContent = orig;
+                cell.style.background = '#fff';
+                cell.style.color = '';
+                delete cell.dataset.copied;
+              }, 1000);
+            });
+          });
+          row.appendChild(cell);
+        });
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+
+      wrap.appendChild(table);
+      card.appendChild(wrap);
+      out.appendChild(card);
+    });
+
+    box.classList.add('visible');
+  }
+
+  function makeSpecialTh(text) {
+    var th = document.createElement('th');
+    th.textContent = text;
+    th.style.cssText = 'padding:6px 10px;border:1px solid #e5e5e7;background:#f5f5f7;font-weight:600;text-align:left;white-space:nowrap;';
+    return th;
+  }
+
+  function exportAmzSpecialCsv() {
+    var groups = parseSpecialInput().groups;
+    if (!groups.length) return;
+
+    var rows = [];
+    groups.forEach(function(group, idx) {
+      if (idx > 0) rows.push(['']);
+      var headerLabel = group.asin ? 'ASIN: ' + group.asin : 'No ASIN (single-brand URL)';
+      rows.push([csvEscape(headerLabel)]);
+      // Original URLs sub-block
+      fpSpecialBrands.forEach(function(brand) {
+        if (!group.urls[brand]) return;
+        rows.push([csvEscape(brand.toUpperCase() + ' original'), csvEscape(group.urls[brand])]);
+      });
+      // Grid header
+      var headRow = [''];
+      fpSpecialPurposes.forEach(function(p) { headRow.push(csvEscape(p.label)); });
+      rows.push(headRow);
+      // Grid body — only populated brand rows
+      fpSpecialBrands.forEach(function(brand) {
+        var sourceUrl = group.urls[brand];
+        if (!sourceUrl) return;
+        var row = [brand.toUpperCase()];
+        fpSpecialPurposes.forEach(function(p) {
+          row.push(csvEscape(swapAffiliateTag(sourceUrl, getTag(brand, p.key))));
+        });
+        rows.push(row);
+      });
+    });
+
+    var csv = rows.map(function(r) { return r.join(','); }).join('\n');
+    var blob = new Blob([csv], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'special-campaigns-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  document.getElementById('amzSpecialInput').addEventListener('input', generateAmzSpecial);
+  document.getElementById('amzSpecialExportBtn').addEventListener('click', exportAmzSpecialCsv);
 
   // =============================================
   // URL Cleaner tab
@@ -1387,6 +1705,16 @@
     var hasSponsored = !!(spImg || spHeadline || spBody);
     var sponsoredInserted = false;
 
+    // Sponsored link processing — when bypass is off, tag Amazon links with [brand]-spo-20
+    var spBypass = document.getElementById('nlSponsoredBypass').checked;
+    var spShowLabel = document.getElementById('nlSponsoredShowLabel').checked;
+    if (spLink && !spBypass) {
+      var spAsinMatch = spLink.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+      if (spAsinMatch) {
+        spLink = 'https://amazon.com/dp/' + spAsinMatch[1] + '?tag=' + getTag(nlBrand, 'spo');
+      }
+    }
+
     var sponsoredHtml = '';
     if (hasSponsored) {
       sponsoredHtml += '<tr><td colspan="2" style="padding:8px;">\n';
@@ -1399,7 +1727,7 @@
         sponsoredHtml += '</td></tr>\n';
       }
       sponsoredHtml += '<tr><td align="center" style="padding:20px;border:none;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;">';
-      sponsoredHtml += '<p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin:0 0 6px 0;">SPONSORED</p>';
+      if (spShowLabel) sponsoredHtml += '<p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin:0 0 6px 0;">SPONSORED</p>';
       if (spHeadline) sponsoredHtml += '<p style="font-size:18px;font-weight:700;color:#1d1d1f;margin:0 0 6px 0;">' + esc(spHeadline) + '</p>';
       if (spBody) sponsoredHtml += '<p style="font-size:14px;color:#666;font-style:italic;margin:0 0 14px 0;">' + esc(spBody) + '</p>';
       if (spCta && spLink) {
@@ -1685,7 +2013,9 @@
       ['sponsoredBody', '', document.getElementById('nlSponsoredBody').value],
       ['sponsoredCta', '', document.getElementById('nlSponsoredCta').value],
       ['sponsoredLink', '', document.getElementById('nlSponsoredLink').value],
-      ['sponsoredPosition', '', document.getElementById('nlSponsoredPosition').value]
+      ['sponsoredPosition', '', document.getElementById('nlSponsoredPosition').value],
+      ['sponsoredBypass', '', document.getElementById('nlSponsoredBypass').checked ? '1' : '0'],
+      ['sponsoredShowLabel', '', document.getElementById('nlSponsoredShowLabel').checked ? '1' : '0']
     ];
     globals.forEach(function(g) { rows.push(g.map(csvEscape).join(',')); });
 
@@ -1787,6 +2117,8 @@
           else if (field === 'sponsoredCta') document.getElementById('nlSponsoredCta').value = val;
           else if (field === 'sponsoredLink') document.getElementById('nlSponsoredLink').value = val;
           else if (field === 'sponsoredPosition') document.getElementById('nlSponsoredPosition').value = val;
+          else if (field === 'sponsoredBypass') document.getElementById('nlSponsoredBypass').checked = val !== '0';
+          else if (field === 'sponsoredShowLabel') document.getElementById('nlSponsoredShowLabel').checked = val !== '0';
         }
         // Product card fields
         else {
@@ -1986,7 +2318,7 @@
   var sbBrand = 'htg';
   initToggle('sbBrandGroup', function(v) { sbBrand = v; });
 
-  function buildSponsoredBlock(img, headline, body, cta, link, ctaColor) {
+  function buildSponsoredBlock(img, headline, body, cta, link, ctaColor, showLabel) {
     var html = '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:4px auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td style="padding:4px;">\n';
     html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e5e5e7;border-radius:12px;border-collapse:separate;">\n';
     if (img) {
@@ -1997,7 +2329,7 @@
       html += '</td></tr>\n';
     }
     html += '<tr><td align="center" style="padding:20px;border:none;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;">';
-    html += '<p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin:0 0 6px 0;">SPONSORED</p>';
+    if (showLabel !== false) html += '<p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin:0 0 6px 0;">SPONSORED</p>';
     if (headline) html += '<p style="font-size:18px;font-weight:700;color:#1d1d1f;margin:0 0 6px 0;">' + esc(headline) + '</p>';
     if (body) html += '<p style="font-size:14px;color:#666;font-style:italic;margin:0 0 14px 0;">' + esc(body) + '</p>';
     if (cta && link) {
@@ -2025,6 +2357,8 @@
       if (g.sponsoredBody != null) document.getElementById('sbBody').value = g.sponsoredBody;
       if (g.sponsoredCta != null) document.getElementById('sbCta').value = g.sponsoredCta;
       if (g.sponsoredLink != null) document.getElementById('sbLink').value = g.sponsoredLink;
+      if (g.sponsoredBypass != null) document.getElementById('sbBypass').checked = g.sponsoredBypass !== '0';
+      if (g.sponsoredShowLabel != null) document.getElementById('sbShowLabel').checked = g.sponsoredShowLabel !== '0';
       if (g.brand) {
         sbBrand = g.brand;
         var btns = document.getElementById('sbBrandGroup').querySelectorAll('button');
@@ -2042,10 +2376,20 @@
     var body = document.getElementById('sbBody').value.trim();
     var cta = document.getElementById('sbCta').value.trim();
     var link = document.getElementById('sbLink').value.trim();
+    var bypass = document.getElementById('sbBypass').checked;
+    var showLabel = document.getElementById('sbShowLabel').checked;
 
     if (!img && !headline && !body) return;
 
-    var html = buildSponsoredBlock(img, headline, body, cta, link, colors.cta);
+    // When bypass is off, tag Amazon links with [brand]-spo-20
+    if (link && !bypass) {
+      var sbAsinMatch = link.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+      if (sbAsinMatch) {
+        link = 'https://amazon.com/dp/' + sbAsinMatch[1] + '?tag=' + getTag(sbBrand, 'spo');
+      }
+    }
+
+    var html = buildSponsoredBlock(img, headline, body, cta, link, colors.cta, showLabel);
 
     document.getElementById('sbOutputCodeArea').value = html;
     var sbDisclosureHtml = buildDisclosureHtml(sbBrand);
