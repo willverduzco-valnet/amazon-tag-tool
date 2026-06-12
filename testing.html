@@ -325,6 +325,10 @@
           <input type="text" id="sbLink" placeholder="https://...">
         </div>
       </div>
+      <div class="field-row" style="margin-top:12px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" id="sbBypass" checked> Bypass link processing</label>
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" id="sbShowLabel" checked> Show "SPONSORED" label</label>
+      </div>
     </div>
 
     <button class="generate-btn" id="sbGenerateBtn">Generate Sponsor Block HTML</button>
@@ -536,6 +540,10 @@
           <label>CTA Link</label>
           <input type="text" id="nlSponsoredLink" placeholder="https://...">
         </div>
+      </div>
+      <div class="field-row" style="margin-top:12px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" id="nlSponsoredBypass" checked> Bypass link processing</label>
+        <label class="cleaner-option" style="margin:0;"><input type="checkbox" id="nlSponsoredShowLabel" checked> Show "SPONSORED" label</label>
       </div>
       <div class="field-row" style="margin-top:12px">
         <label>Insert after row #</label>
@@ -1697,6 +1705,16 @@
     var hasSponsored = !!(spImg || spHeadline || spBody);
     var sponsoredInserted = false;
 
+    // Sponsored link processing — when bypass is off, tag Amazon links with [brand]-spo-20
+    var spBypass = document.getElementById('nlSponsoredBypass').checked;
+    var spShowLabel = document.getElementById('nlSponsoredShowLabel').checked;
+    if (spLink && !spBypass) {
+      var spAsinMatch = spLink.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+      if (spAsinMatch) {
+        spLink = 'https://amazon.com/dp/' + spAsinMatch[1] + '?tag=' + getTag(nlBrand, 'spo');
+      }
+    }
+
     var sponsoredHtml = '';
     if (hasSponsored) {
       sponsoredHtml += '<tr><td colspan="2" style="padding:8px;">\n';
@@ -1709,7 +1727,7 @@
         sponsoredHtml += '</td></tr>\n';
       }
       sponsoredHtml += '<tr><td align="center" style="padding:20px;border:none;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;">';
-      sponsoredHtml += '<p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin:0 0 6px 0;">SPONSORED</p>';
+      if (spShowLabel) sponsoredHtml += '<p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin:0 0 6px 0;">SPONSORED</p>';
       if (spHeadline) sponsoredHtml += '<p style="font-size:18px;font-weight:700;color:#1d1d1f;margin:0 0 6px 0;">' + esc(spHeadline) + '</p>';
       if (spBody) sponsoredHtml += '<p style="font-size:14px;color:#666;font-style:italic;margin:0 0 14px 0;">' + esc(spBody) + '</p>';
       if (spCta && spLink) {
@@ -1995,7 +2013,9 @@
       ['sponsoredBody', '', document.getElementById('nlSponsoredBody').value],
       ['sponsoredCta', '', document.getElementById('nlSponsoredCta').value],
       ['sponsoredLink', '', document.getElementById('nlSponsoredLink').value],
-      ['sponsoredPosition', '', document.getElementById('nlSponsoredPosition').value]
+      ['sponsoredPosition', '', document.getElementById('nlSponsoredPosition').value],
+      ['sponsoredBypass', '', document.getElementById('nlSponsoredBypass').checked ? '1' : '0'],
+      ['sponsoredShowLabel', '', document.getElementById('nlSponsoredShowLabel').checked ? '1' : '0']
     ];
     globals.forEach(function(g) { rows.push(g.map(csvEscape).join(',')); });
 
@@ -2097,6 +2117,8 @@
           else if (field === 'sponsoredCta') document.getElementById('nlSponsoredCta').value = val;
           else if (field === 'sponsoredLink') document.getElementById('nlSponsoredLink').value = val;
           else if (field === 'sponsoredPosition') document.getElementById('nlSponsoredPosition').value = val;
+          else if (field === 'sponsoredBypass') document.getElementById('nlSponsoredBypass').checked = val !== '0';
+          else if (field === 'sponsoredShowLabel') document.getElementById('nlSponsoredShowLabel').checked = val !== '0';
         }
         // Product card fields
         else {
@@ -2296,7 +2318,7 @@
   var sbBrand = 'htg';
   initToggle('sbBrandGroup', function(v) { sbBrand = v; });
 
-  function buildSponsoredBlock(img, headline, body, cta, link, ctaColor) {
+  function buildSponsoredBlock(img, headline, body, cta, link, ctaColor, showLabel) {
     var html = '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:4px auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td style="padding:4px;">\n';
     html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e5e5e7;border-radius:12px;border-collapse:separate;">\n';
     if (img) {
@@ -2307,7 +2329,7 @@
       html += '</td></tr>\n';
     }
     html += '<tr><td align="center" style="padding:20px;border:none;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;">';
-    html += '<p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin:0 0 6px 0;">SPONSORED</p>';
+    if (showLabel !== false) html += '<p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#888;margin:0 0 6px 0;">SPONSORED</p>';
     if (headline) html += '<p style="font-size:18px;font-weight:700;color:#1d1d1f;margin:0 0 6px 0;">' + esc(headline) + '</p>';
     if (body) html += '<p style="font-size:14px;color:#666;font-style:italic;margin:0 0 14px 0;">' + esc(body) + '</p>';
     if (cta && link) {
@@ -2335,6 +2357,8 @@
       if (g.sponsoredBody != null) document.getElementById('sbBody').value = g.sponsoredBody;
       if (g.sponsoredCta != null) document.getElementById('sbCta').value = g.sponsoredCta;
       if (g.sponsoredLink != null) document.getElementById('sbLink').value = g.sponsoredLink;
+      if (g.sponsoredBypass != null) document.getElementById('sbBypass').checked = g.sponsoredBypass !== '0';
+      if (g.sponsoredShowLabel != null) document.getElementById('sbShowLabel').checked = g.sponsoredShowLabel !== '0';
       if (g.brand) {
         sbBrand = g.brand;
         var btns = document.getElementById('sbBrandGroup').querySelectorAll('button');
@@ -2352,10 +2376,20 @@
     var body = document.getElementById('sbBody').value.trim();
     var cta = document.getElementById('sbCta').value.trim();
     var link = document.getElementById('sbLink').value.trim();
+    var bypass = document.getElementById('sbBypass').checked;
+    var showLabel = document.getElementById('sbShowLabel').checked;
 
     if (!img && !headline && !body) return;
 
-    var html = buildSponsoredBlock(img, headline, body, cta, link, colors.cta);
+    // When bypass is off, tag Amazon links with [brand]-spo-20
+    if (link && !bypass) {
+      var sbAsinMatch = link.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
+      if (sbAsinMatch) {
+        link = 'https://amazon.com/dp/' + sbAsinMatch[1] + '?tag=' + getTag(sbBrand, 'spo');
+      }
+    }
+
+    var html = buildSponsoredBlock(img, headline, body, cta, link, colors.cta, showLabel);
 
     document.getElementById('sbOutputCodeArea').value = html;
     var sbDisclosureHtml = buildDisclosureHtml(sbBrand);
