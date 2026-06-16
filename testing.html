@@ -1396,6 +1396,7 @@
   var primeDayDefaults = {
     urgency: "PRIME DAY ENDS SOON — Don't miss these prices",
     caption: 'Deals expire when the timer hits zero',
+    crop: 26, // clips the "Powered by CountdownMail" watermark band at the bottom
     img: {
       htg: 'https://i.countdownmail.com/53sk9l.gif',
       xda: 'https://i.countdownmail.com/53s7nv.gif',
@@ -1428,6 +1429,7 @@
     document.getElementById('nlUrgencyBanner').value = primeDayDefaults.urgency;
     document.getElementById('nlCountdownCaption').value = primeDayDefaults.caption;
     document.getElementById('nlCountdownImg').value = primeDayDefaults.img[nlBrand] || '';
+    document.getElementById('nlCountdownCrop').value = primeDayDefaults.crop;
   });
 
   var productDefs = [
