@@ -474,6 +474,15 @@
         <input type="text" id="nlUrgencyBanner" placeholder="e.g. FLASH DEALS — These prices expire in 24 hours!">
       </div>
       <div class="field-row" style="margin-top:12px">
+        <label>Countdown Timer Image URL (optional)</label>
+        <input type="text" id="nlCountdownImg" placeholder="https://... (animated GIF from a countdown service)">
+        <p style="font-size:12px;color:#888;margin-top:6px;line-height:1.5;">Email clients strip JavaScript, so a live timer won't render in inboxes. Generate a countdown <strong>GIF</strong> (with your end date + timezone baked in) at a free service like <a href="https://countdownmail.com/" target="_blank" rel="noopener noreferrer" style="color:#0071e3;">countdownmail.com</a> or <a href="https://www.sendtric.com/" target="_blank" rel="noopener noreferrer" style="color:#0071e3;">sendtric.com</a>, then paste the image URL here. It appears centered at the top of the newsletter.</p>
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Countdown Caption (optional)</label>
+        <input type="text" id="nlCountdownCaption" placeholder="e.g. Prime Day ends soon — shop before time runs out!">
+      </div>
+      <div class="field-row" style="margin-top:12px">
         <label>Intro Title</label>
         <input type="text" id="nlIntroTitle" placeholder="e.g. Today's Best Deals">
       </div>
@@ -1687,6 +1696,8 @@
 
   document.getElementById('generateBtn').addEventListener('click', function() {
     var urgencyText = document.getElementById('nlUrgencyBanner').value.trim();
+    var countdownImg = document.getElementById('nlCountdownImg').value.trim();
+    var countdownCaption = document.getElementById('nlCountdownCaption').value.trim();
     var introTitle = document.getElementById('nlIntroTitle').value.trim();
     var introText = document.getElementById('nlIntroText').value.trim();
     var tag = getTag(nlBrand, 'dealnewsletter');
@@ -1754,6 +1765,16 @@
       html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;"><tr>';
       html += '<td align="center" bgcolor="' + colors.cta + '" style="background-color:' + colors.cta + ';padding:12px 16px;border-radius:8px;">';
       html += '<span style="color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;">' + esc(urgencyText) + '</span>';
+      html += '</td></tr></table>\n\n';
+    }
+
+    // Countdown timer (animated GIF from external service — email-safe as an image)
+    if (countdownImg) {
+      html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;"><tr><td align="center" style="padding:0;">\n';
+      html += '<img alt="' + esc(countdownCaption || 'Countdown') + '" src="' + esc(countdownImg) + '" style="display:block;max-width:100%;height:auto;margin:0 auto;border:0;" />\n';
+      if (countdownCaption) {
+        html += '<p style="margin:8px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:13px;font-weight:700;color:' + colors.cta + ';letter-spacing:0.3px;">' + esc(countdownCaption) + '</p>\n';
+      }
       html += '</td></tr></table>\n\n';
     }
 
@@ -2004,6 +2025,8 @@
     var globals = [
       ['brand', '', nlBrand],
       ['urgencyBanner', '', document.getElementById('nlUrgencyBanner').value],
+      ['countdownImg', '', document.getElementById('nlCountdownImg').value],
+      ['countdownCaption', '', document.getElementById('nlCountdownCaption').value],
       ['introTitle', '', document.getElementById('nlIntroTitle').value],
       ['introText', '', document.getElementById('nlIntroText').value],
       ['bannerPosition', '', document.getElementById('nlBannerPosition').value],
@@ -2107,6 +2130,8 @@
             brandBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === val); });
           }
           else if (field === 'urgencyBanner') document.getElementById('nlUrgencyBanner').value = val;
+          else if (field === 'countdownImg') document.getElementById('nlCountdownImg').value = val;
+          else if (field === 'countdownCaption') document.getElementById('nlCountdownCaption').value = val;
           else if (field === 'introTitle') document.getElementById('nlIntroTitle').value = val;
           else if (field === 'introText') document.getElementById('nlIntroText').value = val;
           else if (field === 'bannerPosition') document.getElementById('nlBannerPosition').value = val;
