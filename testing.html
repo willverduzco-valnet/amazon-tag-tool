@@ -469,6 +469,11 @@
         </div>
       </div>
 
+      <div class="field-row" style="margin-bottom:16px;padding:12px 14px;background:#f9f9fb;border:1.5px solid #e5e5e7;border-radius:10px;">
+        <label class="cleaner-option" style="margin:0;font-size:14px;text-transform:none;letter-spacing:0;color:#1d1d1f;"><input type="checkbox" id="nlPrimeDayMode"> <strong>Prime Day mode</strong></label>
+        <p style="font-size:12px;color:#888;margin-top:8px;margin-bottom:0;line-height:1.5;">Loads the Prime Day preset into the fields below — urgency banner, countdown caption, and the selected brand's countdown GIF. Everything stays editable, and the GIF re-syncs when you switch brands (unless you've manually changed it).</p>
+      </div>
+
       <div class="field-row">
         <label>Urgency Banner (optional)</label>
         <input type="text" id="nlUrgencyBanner" placeholder="e.g. FLASH DEALS — These prices expire in 24 hours!">
@@ -1386,7 +1391,44 @@
   // Deals Newsletter Builder
   // =============================================
   var nlBrand = 'htg';
-  initToggle('nlBrandGroup', function(v) { nlBrand = v; });
+
+  // Prime Day preset — overridable defaults loaded by the "Prime Day mode" toggle.
+  var primeDayDefaults = {
+    urgency: "PRIME DAY ENDS SOON — Don't miss these prices",
+    caption: 'Deals expire when the timer hits zero',
+    img: {
+      htg: 'https://i.countdownmail.com/53sk9l.gif',
+      xda: 'https://i.countdownmail.com/53s7nv.gif',
+      muo: '',
+      ap:  '',
+      pl:  ''
+    }
+  };
+  // Set of all known default GIF URLs — used to decide whether a brand switch may
+  // safely overwrite the countdown image (i.e. it hasn't been manually changed).
+  var primeDayKnownImgs = {};
+  Object.keys(primeDayDefaults.img).forEach(function(b) {
+    if (primeDayDefaults.img[b]) primeDayKnownImgs[primeDayDefaults.img[b]] = true;
+  });
+
+  function applyPrimeDayBrandImg() {
+    if (!document.getElementById('nlPrimeDayMode').checked) return;
+    var imgEl = document.getElementById('nlCountdownImg');
+    var cur = imgEl.value.trim();
+    // Only overwrite if empty or holding a known default (preserve manual overrides)
+    if (cur === '' || primeDayKnownImgs[cur]) {
+      imgEl.value = primeDayDefaults.img[nlBrand] || '';
+    }
+  }
+
+  initToggle('nlBrandGroup', function(v) { nlBrand = v; }, applyPrimeDayBrandImg);
+
+  document.getElementById('nlPrimeDayMode').addEventListener('change', function() {
+    if (!this.checked) return;
+    document.getElementById('nlUrgencyBanner').value = primeDayDefaults.urgency;
+    document.getElementById('nlCountdownCaption').value = primeDayDefaults.caption;
+    document.getElementById('nlCountdownImg').value = primeDayDefaults.img[nlBrand] || '';
+  });
 
   var productDefs = [
     { label: 'Deal of the Day', cls: 'deal-of-day' },
@@ -2040,6 +2082,7 @@
     var globals = [
       ['brand', '', nlBrand],
       ['urgencyBanner', '', document.getElementById('nlUrgencyBanner').value],
+      ['primeDayMode', '', document.getElementById('nlPrimeDayMode').checked ? '1' : '0'],
       ['countdownImg', '', document.getElementById('nlCountdownImg').value],
       ['countdownCrop', '', document.getElementById('nlCountdownCrop').value],
       ['countdownCaption', '', document.getElementById('nlCountdownCaption').value],
@@ -2146,6 +2189,7 @@
             brandBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === val); });
           }
           else if (field === 'urgencyBanner') document.getElementById('nlUrgencyBanner').value = val;
+          else if (field === 'primeDayMode') document.getElementById('nlPrimeDayMode').checked = val === '1';
           else if (field === 'countdownImg') document.getElementById('nlCountdownImg').value = val;
           else if (field === 'countdownCrop') document.getElementById('nlCountdownCrop').value = val;
           else if (field === 'countdownCaption') document.getElementById('nlCountdownCaption').value = val;
