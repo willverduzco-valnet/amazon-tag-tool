@@ -476,7 +476,14 @@
       <div class="field-row" style="margin-top:12px">
         <label>Countdown Timer Image URL (optional)</label>
         <input type="text" id="nlCountdownImg" placeholder="https://... (animated GIF from a countdown service)">
-        <p style="font-size:12px;color:#888;margin-top:6px;line-height:1.5;">Email clients strip JavaScript, so a live timer won't render in inboxes. Generate a countdown <strong>GIF</strong> (with your end date + timezone baked in) at a free service like <a href="https://countdownmail.com/" target="_blank" rel="noopener noreferrer" style="color:#0071e3;">countdownmail.com</a> or <a href="https://www.sendtric.com/" target="_blank" rel="noopener noreferrer" style="color:#0071e3;">sendtric.com</a>, then paste the image URL here. It appears centered at the top of the newsletter.</p>
+        <p style="font-size:12px;color:#888;margin-top:6px;line-height:1.5;">Email clients strip JavaScript, so a live timer won't render in inboxes. Generate a countdown <strong>GIF</strong> (with your end date + timezone baked in) at <a href="https://countdownmail.com/" target="_blank" rel="noopener noreferrer" style="color:#0071e3;">countdownmail.com</a>, then paste the image URL here. It appears centered at the top of the newsletter.</p>
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Crop Watermark From Bottom (px)</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="nlCountdownCrop" value="0" style="width:80px;text-align:center;">
+          <span style="font-size:13px;color:#888;">Clips the bottom N px to hide a service watermark. 0 = off. (Outlook desktop ignores the crop and shows the full image.)</span>
+        </div>
       </div>
       <div class="field-row" style="margin-top:12px">
         <label>Countdown Caption (optional)</label>
@@ -1697,6 +1704,7 @@
   document.getElementById('generateBtn').addEventListener('click', function() {
     var urgencyText = document.getElementById('nlUrgencyBanner').value.trim();
     var countdownImg = document.getElementById('nlCountdownImg').value.trim();
+    var countdownCrop = parseInt(document.getElementById('nlCountdownCrop').value) || 0;
     var countdownCaption = document.getElementById('nlCountdownCaption').value.trim();
     var introTitle = document.getElementById('nlIntroTitle').value.trim();
     var introText = document.getElementById('nlIntroText').value.trim();
@@ -1771,7 +1779,14 @@
     // Countdown timer (animated GIF from external service — email-safe as an image)
     if (countdownImg) {
       html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;"><tr><td align="center" style="padding:0;">\n';
-      html += '<img alt="' + esc(countdownCaption || 'Countdown') + '" src="' + esc(countdownImg) + '" style="display:block;max-width:100%;height:auto;margin:0 auto;border:0;" />\n';
+      var cdImgTag = '<img alt="' + esc(countdownCaption || 'Countdown') + '" src="' + esc(countdownImg) + '" style="display:block;max-width:100%;height:auto;border:0;' + (countdownCrop > 0 ? 'margin-bottom:-' + countdownCrop + 'px;' : '') + '" />';
+      if (countdownCrop > 0) {
+        // Height-agnostic bottom crop: negative margin pulls the container's content box up,
+        // overflow:hidden clips the watermark strip. (Outlook desktop ignores this and shows full image.)
+        html += '<div style="display:inline-block;overflow:hidden;line-height:0;font-size:0;">' + cdImgTag + '</div>\n';
+      } else {
+        html += cdImgTag + '\n';
+      }
       if (countdownCaption) {
         html += '<p style="margin:8px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:13px;font-weight:700;color:' + colors.cta + ';letter-spacing:0.3px;">' + esc(countdownCaption) + '</p>\n';
       }
@@ -2026,6 +2041,7 @@
       ['brand', '', nlBrand],
       ['urgencyBanner', '', document.getElementById('nlUrgencyBanner').value],
       ['countdownImg', '', document.getElementById('nlCountdownImg').value],
+      ['countdownCrop', '', document.getElementById('nlCountdownCrop').value],
       ['countdownCaption', '', document.getElementById('nlCountdownCaption').value],
       ['introTitle', '', document.getElementById('nlIntroTitle').value],
       ['introText', '', document.getElementById('nlIntroText').value],
@@ -2131,6 +2147,7 @@
           }
           else if (field === 'urgencyBanner') document.getElementById('nlUrgencyBanner').value = val;
           else if (field === 'countdownImg') document.getElementById('nlCountdownImg').value = val;
+          else if (field === 'countdownCrop') document.getElementById('nlCountdownCrop').value = val;
           else if (field === 'countdownCaption') document.getElementById('nlCountdownCaption').value = val;
           else if (field === 'introTitle') document.getElementById('nlIntroTitle').value = val;
           else if (field === 'introText') document.getElementById('nlIntroText').value = val;
