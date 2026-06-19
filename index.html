@@ -206,8 +206,9 @@
         </div>
       </div>
 
-      <div style="margin-top:16px">
-        <button class="generate-btn" id="dbImportCsvBtn" style="background:#555;font-size:13px;padding:10px;margin:0;">Import CSV (first 2 deals)</button>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="generate-btn" id="dbExportCsvBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Export CSV</button>
+        <button class="generate-btn" id="dbImportCsvBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Import CSV (first 2 deals)</button>
         <input type="file" id="dbImportCsvFile" accept=".csv" style="display:none;">
       </div>
     </div>
@@ -299,8 +300,9 @@
         </div>
       </div>
 
-      <div style="margin:16px 0">
-        <button class="generate-btn" id="sbImportCsvBtn" style="background:#555;font-size:13px;padding:10px;margin:0;">Import CSV (extracts sponsor fields)</button>
+      <div style="display:flex;gap:8px;margin:16px 0">
+        <button class="generate-btn" id="sbExportCsvBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Export CSV</button>
+        <button class="generate-btn" id="sbImportCsvBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Import CSV (extracts sponsor fields)</button>
         <input type="file" id="sbImportCsvFile" accept=".csv" style="display:none;">
       </div>
 
@@ -372,8 +374,9 @@
       <h2 class="section-title">Forum Post Generator</h2>
       <p style="font-size:13px;color:#888;margin-bottom:16px;">Generates XenForo BBCode for posting to XDA Forums. Uses the <code style="font-size:12px;background:#e5e5e7;padding:1px 5px;border-radius:4px;">xdaforum01-20</code> affiliate tag (XDA-only). Import a Deals NL CSV to populate the fields below, then edit anything before generating.</p>
 
-      <div style="margin-bottom:16px">
-        <button class="generate-btn" id="fpImportCsvBtn" style="background:#555;font-size:13px;padding:10px;margin:0;">Import CSV</button>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="generate-btn" id="fpExportCsvBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Export CSV</button>
+        <button class="generate-btn" id="fpImportCsvBtn" style="flex:1;background:#555;font-size:13px;padding:10px;margin:0;">Import CSV</button>
         <input type="file" id="fpImportCsvFile" accept=".csv" style="display:none;">
       </div>
 
@@ -2294,11 +2297,42 @@
     return { globals: globals, slots: slots };
   }
 
+  // Shared CSV writer — takes [field, slot, value] rows, prepends the header, downloads.
+  // Produces the same field/slot/value schema the NL Builder import/export uses, so
+  // Deal Block / Sponsor Block / Forum Post exports round-trip with the NL Builder.
+  function downloadFieldCsv(rows, filename) {
+    var out = [['field', 'slot', 'value'].map(csvEscape).join(',')];
+    rows.forEach(function(r) { out.push(r.map(function(v) { return csvEscape(String(v == null ? '' : v)); }).join(',')); });
+    var blob = new Blob([out.join('\n')], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function csvDateStamp() { return new Date().toISOString().slice(0, 10); }
+
   // =============================================
   // Deal Block Generator
   // =============================================
   var dbBrand = 'htg';
   initToggle('dbBrandGroup', function(v) { dbBrand = v; });
+
+  document.getElementById('dbExportCsvBtn').addEventListener('click', function() {
+    var rows = [['brand', '', dbBrand]];
+    [document.getElementById('dbCard1'), document.getElementById('dbCard2')].forEach(function(card, i) {
+      var s = String(i + 1);
+      rows.push(['title', s, card.querySelector('.db-title').value]);
+      rows.push(['url', s, card.querySelector('.db-url').value]);
+      rows.push(['img', s, card.querySelector('.db-img').value]);
+      rows.push(['price', s, card.querySelector('.db-price').value]);
+      rows.push(['origPrice', s, card.querySelector('.db-orig-price').value]);
+      rows.push(['cta', s, card.querySelector('.db-cta').value]);
+      rows.push(['skipAffiliate', s, card.querySelector('.db-bypass').checked ? '1' : '0']);
+    });
+    downloadFieldCsv(rows, 'deal-block-' + dbBrand + '-' + csvDateStamp() + '.csv');
+  });
 
   document.getElementById('dbImportCsvBtn').addEventListener('click', function() {
     document.getElementById('dbImportCsvFile').click();
@@ -2458,6 +2492,20 @@
     return html;
   }
 
+  document.getElementById('sbExportCsvBtn').addEventListener('click', function() {
+    var rows = [
+      ['brand', '', sbBrand],
+      ['sponsoredImg', '', document.getElementById('sbImg').value],
+      ['sponsoredHeadline', '', document.getElementById('sbHeadline').value],
+      ['sponsoredBody', '', document.getElementById('sbBody').value],
+      ['sponsoredCta', '', document.getElementById('sbCta').value],
+      ['sponsoredLink', '', document.getElementById('sbLink').value],
+      ['sponsoredBypass', '', document.getElementById('sbBypass').checked ? '1' : '0'],
+      ['sponsoredShowLabel', '', document.getElementById('sbShowLabel').checked ? '1' : '0']
+    ];
+    downloadFieldCsv(rows, 'sponsor-block-' + sbBrand + '-' + csvDateStamp() + '.csv');
+  });
+
   document.getElementById('sbImportCsvBtn').addEventListener('click', function() {
     document.getElementById('sbImportCsvFile').click();
   });
@@ -2597,6 +2645,31 @@
         '<label class="cleaner-option" style="margin:0;"><input type="checkbox" class="fp-skip-affiliate"> Bypass link processing</label>' +
       '</div>';
     fpContainer.appendChild(card);
+  });
+
+  document.getElementById('fpExportCsvBtn').addEventListener('click', function() {
+    var rows = [
+      ['brand', '', 'xda'],
+      ['urgencyBanner', '', document.getElementById('fpUrgencyBanner').value],
+      ['introTitle', '', document.getElementById('fpIntroTitle').value],
+      ['introText', '', document.getElementById('fpIntroText').value],
+      ['sponsoredImg', '', document.getElementById('fpSponsoredImg').value],
+      ['sponsoredHeadline', '', document.getElementById('fpSponsoredHeadline').value],
+      ['sponsoredBody', '', document.getElementById('fpSponsoredBody').value],
+      ['sponsoredCta', '', document.getElementById('fpSponsoredCta').value],
+      ['sponsoredLink', '', document.getElementById('fpSponsoredLink').value]
+    ];
+    fpContainer.querySelectorAll('.product-card').forEach(function(card, i) {
+      var s = String(i + 1);
+      rows.push(['title', s, card.querySelector('.fp-title').value]);
+      rows.push(['url', s, card.querySelector('.fp-url').value]);
+      rows.push(['img', s, card.querySelector('.fp-img').value]);
+      rows.push(['price', s, card.querySelector('.fp-price').value]);
+      rows.push(['origPrice', s, card.querySelector('.fp-orig-price').value]);
+      rows.push(['cta', s, card.querySelector('.fp-cta').value]);
+      rows.push(['skipAffiliate', s, card.querySelector('.fp-skip-affiliate').checked ? '1' : '0']);
+    });
+    downloadFieldCsv(rows, 'forum-post-' + csvDateStamp() + '.csv');
   });
 
   document.getElementById('fpImportCsvBtn').addEventListener('click', function() {
