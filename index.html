@@ -469,9 +469,30 @@
         </div>
       </div>
 
+      <div class="field-row" style="margin-bottom:16px;padding:12px 14px;background:#f9f9fb;border:1.5px solid #e5e5e7;border-radius:10px;">
+        <label class="cleaner-option" style="margin:0;font-size:14px;text-transform:none;letter-spacing:0;color:#1d1d1f;"><input type="checkbox" id="nlPrimeDayMode"> <strong>Prime Day mode</strong></label>
+        <p style="font-size:12px;color:#888;margin-top:8px;margin-bottom:0;line-height:1.5;">Loads the Prime Day preset into the fields below — urgency banner, countdown caption, and the selected brand's countdown GIF. Everything stays editable, and the GIF re-syncs when you switch brands (unless you've manually changed it).</p>
+      </div>
+
       <div class="field-row">
         <label>Urgency Banner (optional)</label>
         <input type="text" id="nlUrgencyBanner" placeholder="e.g. FLASH DEALS — These prices expire in 24 hours!">
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Countdown Timer Image URL (optional)</label>
+        <input type="text" id="nlCountdownImg" placeholder="https://... (animated GIF from a countdown service)">
+        <p style="font-size:12px;color:#888;margin-top:6px;line-height:1.5;">Email clients strip JavaScript, so a live timer won't render in inboxes. Generate a countdown <strong>GIF</strong> (with your end date + timezone baked in) at <a href="https://countdownmail.com/" target="_blank" rel="noopener noreferrer" style="color:#0071e3;">countdownmail.com</a>, then paste the image URL here. It appears centered at the top of the newsletter.</p>
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Crop Watermark From Bottom (px)</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="nlCountdownCrop" value="0" style="width:80px;text-align:center;">
+          <span style="font-size:13px;color:#888;">Clips the bottom N px to hide a service watermark. 0 = off. (Outlook desktop ignores the crop and shows the full image.)</span>
+        </div>
+      </div>
+      <div class="field-row" style="margin-top:12px">
+        <label>Countdown Caption (optional)</label>
+        <input type="text" id="nlCountdownCaption" placeholder="e.g. Prime Day ends soon — shop before time runs out!">
       </div>
       <div class="field-row" style="margin-top:12px">
         <label>Intro Title</label>
@@ -1370,7 +1391,66 @@
   // Deals Newsletter Builder
   // =============================================
   var nlBrand = 'htg';
-  initToggle('nlBrandGroup', function(v) { nlBrand = v; });
+
+  // Prime Day preset — overridable defaults loaded by the "Prime Day mode" toggle.
+  var primeDayDefaults = {
+    urgency: "PRIME DAY ENDS SOON — Don't miss these prices",
+    caption: 'Deals expire when the timer hits zero',
+    crop: 22, // clips the "Powered by CountdownMail" watermark band at the bottom
+    img: {
+      htg: 'https://i.countdownmail.com/53sk9l.gif',
+      xda: 'https://i.countdownmail.com/53s7nv.gif',
+      muo: 'https://i.countdownmail.com/5401nt.gif',
+      ap:  'https://i.countdownmail.com/5401or.gif',
+      pl:  'https://i.countdownmail.com/5401pj.gif'
+    }
+  };
+  // Set of all known default GIF URLs — used to decide whether a brand switch may
+  // safely overwrite the countdown image (i.e. it hasn't been manually changed).
+  var primeDayKnownImgs = {};
+  Object.keys(primeDayDefaults.img).forEach(function(b) {
+    if (primeDayDefaults.img[b]) primeDayKnownImgs[primeDayDefaults.img[b]] = true;
+  });
+
+  function applyPrimeDayBrandImg() {
+    if (!document.getElementById('nlPrimeDayMode').checked) return;
+    var imgEl = document.getElementById('nlCountdownImg');
+    var cur = imgEl.value.trim();
+    // Only overwrite if empty or holding a known default (preserve manual overrides)
+    if (cur === '' || primeDayKnownImgs[cur]) {
+      imgEl.value = primeDayDefaults.img[nlBrand] || '';
+      preloadCountdownDims(imgEl.value.trim());
+    }
+  }
+
+  initToggle('nlBrandGroup', function(v) { nlBrand = v; }, applyPrimeDayBrandImg);
+
+  document.getElementById('nlPrimeDayMode').addEventListener('change', function() {
+    if (!this.checked) return;
+    document.getElementById('nlUrgencyBanner').value = primeDayDefaults.urgency;
+    document.getElementById('nlCountdownCaption').value = primeDayDefaults.caption;
+    document.getElementById('nlCountdownImg').value = primeDayDefaults.img[nlBrand] || '';
+    document.getElementById('nlCountdownCrop').value = primeDayDefaults.crop;
+    preloadCountdownDims(primeDayDefaults.img[nlBrand] || '');
+  });
+
+  // Preload the countdown GIF's natural dimensions so the generator can emit a
+  // fixed-height overflow:hidden crop (Gmail-safe — no negative margin, which Gmail strips).
+  var nlCountdownDims = null;
+  function preloadCountdownDims(url) {
+    nlCountdownDims = null;
+    if (!url) return;
+    var im = new Image();
+    im.onload = function() {
+      if (im.naturalWidth && im.naturalHeight) {
+        nlCountdownDims = { url: url, w: im.naturalWidth, h: im.naturalHeight };
+      }
+    };
+    im.src = url;
+  }
+  document.getElementById('nlCountdownImg').addEventListener('input', function() {
+    preloadCountdownDims(this.value.trim());
+  });
 
   var productDefs = [
     { label: 'Deal of the Day', cls: 'deal-of-day' },
@@ -1687,6 +1767,9 @@
 
   document.getElementById('generateBtn').addEventListener('click', function() {
     var urgencyText = document.getElementById('nlUrgencyBanner').value.trim();
+    var countdownImg = document.getElementById('nlCountdownImg').value.trim();
+    var countdownCrop = parseInt(document.getElementById('nlCountdownCrop').value) || 0;
+    var countdownCaption = document.getElementById('nlCountdownCaption').value.trim();
     var introTitle = document.getElementById('nlIntroTitle').value.trim();
     var introText = document.getElementById('nlIntroText').value.trim();
     var tag = getTag(nlBrand, 'dealnewsletter');
@@ -1754,6 +1837,29 @@
       html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;"><tr>';
       html += '<td align="center" bgcolor="' + colors.cta + '" style="background-color:' + colors.cta + ';padding:12px 16px;border-radius:8px;">';
       html += '<span style="color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;">' + esc(urgencyText) + '</span>';
+      html += '</td></tr></table>\n\n';
+    }
+
+    // Countdown timer (animated GIF from external service — email-safe as an image)
+    if (countdownImg) {
+      var NL_W = 568; // newsletter content width
+      html += '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;"><tr><td align="center" style="padding:0;">\n';
+      var cdAlt = esc(countdownCaption || 'Countdown');
+      // Fixed-height crop: clip the watermark using a container whose height is the GIF's
+      // displayed height (at 568px) minus the crop. No negative margin (Gmail strips those).
+      // Requires the GIF's natural dimensions (preloaded). Falls back to a plain image otherwise.
+      if (countdownCrop > 0 && nlCountdownDims && nlCountdownDims.url === countdownImg && nlCountdownDims.w) {
+        var dispH = NL_W * nlCountdownDims.h / nlCountdownDims.w;
+        var visH = Math.max(1, Math.round(dispH - countdownCrop));
+        html += '<div style="max-width:' + NL_W + 'px;height:' + visH + 'px;overflow:hidden;line-height:0;font-size:0;margin:0 auto;">';
+        html += '<img alt="' + cdAlt + '" src="' + esc(countdownImg) + '" width="' + NL_W + '" style="display:block;width:100%;max-width:' + NL_W + 'px;border:0;" />';
+        html += '</div>\n';
+      } else {
+        html += '<img alt="' + cdAlt + '" src="' + esc(countdownImg) + '" style="display:block;max-width:100%;height:auto;margin:0 auto;border:0;" />\n';
+      }
+      if (countdownCaption) {
+        html += '<p style="margin:8px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:13px;font-weight:700;color:' + colors.cta + ';letter-spacing:0.3px;">' + esc(countdownCaption) + '</p>\n';
+      }
       html += '</td></tr></table>\n\n';
     }
 
@@ -2004,6 +2110,10 @@
     var globals = [
       ['brand', '', nlBrand],
       ['urgencyBanner', '', document.getElementById('nlUrgencyBanner').value],
+      ['primeDayMode', '', document.getElementById('nlPrimeDayMode').checked ? '1' : '0'],
+      ['countdownImg', '', document.getElementById('nlCountdownImg').value],
+      ['countdownCrop', '', document.getElementById('nlCountdownCrop').value],
+      ['countdownCaption', '', document.getElementById('nlCountdownCaption').value],
       ['introTitle', '', document.getElementById('nlIntroTitle').value],
       ['introText', '', document.getElementById('nlIntroText').value],
       ['bannerPosition', '', document.getElementById('nlBannerPosition').value],
@@ -2107,6 +2217,10 @@
             brandBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.val === val); });
           }
           else if (field === 'urgencyBanner') document.getElementById('nlUrgencyBanner').value = val;
+          else if (field === 'primeDayMode') document.getElementById('nlPrimeDayMode').checked = val === '1';
+          else if (field === 'countdownImg') { document.getElementById('nlCountdownImg').value = val; preloadCountdownDims(val.trim()); }
+          else if (field === 'countdownCrop') document.getElementById('nlCountdownCrop').value = val;
+          else if (field === 'countdownCaption') document.getElementById('nlCountdownCaption').value = val;
           else if (field === 'introTitle') document.getElementById('nlIntroTitle').value = val;
           else if (field === 'introText') document.getElementById('nlIntroText').value = val;
           else if (field === 'bannerPosition') document.getElementById('nlBannerPosition').value = val;
