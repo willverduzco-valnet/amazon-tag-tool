@@ -573,8 +573,8 @@
       <div class="field-row" style="margin-top:12px">
         <label>Insert after row #</label>
         <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="nlSponsoredPosition" value="3" style="width:60px;text-align:center;">
-          <span style="font-size:13px;color:#888;">Each row = 2 products (default: after row 3)</span>
+          <input type="text" id="nlSponsoredPosition" value="1" style="width:60px;text-align:center;">
+          <span style="font-size:13px;color:#888;">Each row = 2 products (default: after row 1)</span>
         </div>
       </div>
     </div>
@@ -1789,7 +1789,7 @@
     var spBody = document.getElementById('nlSponsoredBody').value.trim();
     var spCta = document.getElementById('nlSponsoredCta').value.trim();
     var spLink = document.getElementById('nlSponsoredLink').value.trim();
-    var spPosition = parseInt(document.getElementById('nlSponsoredPosition').value) || 3;
+    var spPosition = parseInt(document.getElementById('nlSponsoredPosition').value) || 1;
     var hasSponsored = !!(spImg || spHeadline || spBody);
     var sponsoredInserted = false;
 
