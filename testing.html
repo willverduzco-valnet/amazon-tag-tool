@@ -514,7 +514,7 @@
       </div>
       <div class="field-row" style="margin-top:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;">
-          <label style="margin-bottom:0;">Custom Banner HTML (HTG/XDA — overrides generated banner)</label>
+          <label style="margin-bottom:0;">Custom Banner HTML (HTG/XDA — optional)</label>
           <button class="generate-btn" id="nlBannerImportBtn" style="background:#555;font-size:11px;padding:4px 10px;margin:0;width:auto;">Import .html</button>
           <input type="file" id="nlBannerImportFile" accept=".html,.htm,.txt" style="display:none;">
         </div>
@@ -1870,12 +1870,12 @@
     if (introTitle) html += '<h3>' + esc(introTitle) + '</h3>\n';
     if (introText) html += esc(introText) + '&nbsp;\n\n';
 
-    // Banner HTML — for HTG/XDA, use the textarea content if present, otherwise the default Deals Center CTA.
-    // Other brands fall back to the simple image banner from headerMap.
+    // Banner HTML — HTG/XDA use the custom textarea content only (Deals Center CTA is sunset/disabled;
+    // re-enable by restoring `|| defaultCtaHtml[nlBrand]`). Other brands fall back to the headerMap image.
     var bannerHtml = '';
     var customBannerHtml = document.getElementById('nlCustomBannerHtml').value.trim();
     if (nlBrand === 'htg' || nlBrand === 'xda') {
-      bannerHtml = customBannerHtml || defaultCtaHtml[nlBrand];
+      bannerHtml = customBannerHtml;
     } else if (header) {
       bannerHtml += '<tr><td colspan="2" style="padding:8px;">';
       bannerHtml += '<div class="custom-anchor"><a href="' + header.link + '" rel="noreferrer noopener" target="_blank">';
@@ -1925,7 +1925,7 @@
     html += '<table cellpadding="0" cellspacing="0" border="0" width="568" align="center" style="width:568px;margin:0 auto;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;">\n';
 
     // Insert banner at position 0 (before any deals)
-    if (header && bannerPosition === 0) {
+    if (bannerHtml && bannerPosition === 0) {
       html += bannerHtml;
       bannerInserted = true;
     }
@@ -1971,7 +1971,7 @@
       }
 
       // Insert banner after configured row count
-      if (header && !bannerInserted && rowCount >= bannerPosition) {
+      if (bannerHtml && !bannerInserted && rowCount >= bannerPosition) {
         html += bannerHtml;
         bannerInserted = true;
       }
@@ -1983,7 +1983,7 @@
     }
 
     // Insert banner at end if not yet placed
-    if (header && !bannerInserted) {
+    if (bannerHtml && !bannerInserted) {
       html += bannerHtml;
     }
 
