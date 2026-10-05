@@ -739,6 +739,35 @@
     return 'https://amazon.com/dp/' + m[1] + '?tag=' + tagId;
   }
 
+  // Affiliate a card/block link. Product pages collapse to /dp/ASIN; other amazon.com pages
+  // (e.g. the /amazonprime sign-up, search, deals pages) keep their path and query with only
+  // the tag swapped in. Returns null for anything that isn't an amazon.com URL.
+  function affiliateAmazonUrl(url, tagId) {
+    var tagged = tagAmazonUrl(url, tagId);
+    if (tagged) return tagged;
+    var full = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+    var host;
+    try { host = new URL(full).hostname; } catch (e) { return null; }
+    if (!/(^|\.)amazon\.com$/i.test(host)) return null;
+    return swapAffiliateTag(full, tagId);
+  }
+
+  // Split a typed price into its display parts. "$139/yr" -> { main: '$139', suffix: '/yr', num: 139 }.
+  // The leading "$" is optional and never doubled. A unit suffix is recognized after "/" or "per"
+  // (or anything after an explicitly typed "$"); other text ("FREE", "30-day free trial") passes through as-is.
+  function formatPrice(raw) {
+    var t = (raw || '').trim();
+    var hadDollar = t.charAt(0) === '$';
+    var m = t.replace(/^\$\s*/, '').match(/^(\d[\d,]*(?:\.\d+)?)(.*)$/);
+    var rest = m ? m[2].trim() : '';
+    if (!m || (rest && !hadDollar && !/^(\/|per\b)/i.test(rest))) return { main: t, suffix: '', num: NaN };
+    return {
+      main: '$' + m[1],
+      suffix: rest && rest.charAt(0) !== '/' ? ' ' + rest : rest,
+      num: parseFloat(m[1].replace(/,/g, ''))
+    };
+  }
+
   // Default/article (account-level) tag per brand — used when purpose is "article"
   var brandArticleTag = {
     htg: 'hotoge-20',
@@ -1397,9 +1426,12 @@
 
   // Prime Day preset — overridable defaults loaded by the "Prime Day mode" toggle.
   var primeDayDefaults = {
-    urgency: "PRIME DAY ENDS SOON — Don't miss these prices",
+    urgency: "PRIME BIG DEAL DAYS END SOON — Don't miss these prices",
     caption: 'Deals expire when the timer hits zero',
     crop: 22, // clips the "Powered by CountdownMail" watermark band at the bottom
+    // Natural size of the preset GIFs, so the crop never depends on the preload finishing first.
+    // If the CountdownMail template size changes, update this and re-tune `crop`.
+    dims: { w: 482, h: 120 },
     img: {
       htg: 'https://i.countdownmail.com/53sk9l.gif',
       xda: 'https://i.countdownmail.com/53s7nv.gif',
@@ -1715,6 +1747,9 @@
 </tr>`
   };
 
+  // Fixed price-row height (px) — tall enough for price + strikethrough + SAVE badge on one line.
+  var PRICE_ROW_H = 48;
+
   function buildProductCell(data, colors, cellPad) {
     cellPad = cellPad !== undefined ? cellPad : 8;
     var innerW = 284 - (cellPad * 2);
@@ -1741,20 +1776,24 @@
     // Title
     c += '<tr><td width="' + innerW + '" style="padding:16px 16px 8px 16px;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:14px;font-weight:600;line-height:1.3;mso-line-height-rule:exactly;color:#1d1d1f;max-width:' + innerW + 'px;overflow:hidden;word-wrap:break-word;">';
     c += esc(data.title) + '</td></tr>';
-    // Prices + discount badge on same line
+    // Prices + discount badge on same line. The row is always emitted at a fixed height so a card
+    // without a price (e.g. a Prime membership promo) lines up with its priced neighbour.
+    var priceLine = '<span style="font-size:24px;font-weight:700;">&nbsp;</span>';
     if (data.price) {
-      var priceLine = '<span style="font-size:24px;font-weight:700;color:#1d1d1f;margin-right:8px;">$' + esc(data.price) + '</span>';
+      var cur = formatPrice(data.price);
+      priceLine = '<span style="font-size:24px;font-weight:700;color:#1d1d1f;margin-right:8px;">' + esc(cur.main);
+      if (cur.suffix) priceLine += '<span class="nl-price-suffix" style="font-size:14px;font-weight:600;color:#666;">' + esc(cur.suffix) + '</span>';
+      priceLine += '</span>';
       if (data.origPrice) {
-        priceLine += '<span style="font-size:14px;color:#999;text-decoration:line-through;margin-right:8px;">$' + esc(data.origPrice) + '</span>';
-        var cur = parseFloat(data.price.replace(/,/g, ''));
-        var orig = parseFloat(data.origPrice.replace(/,/g, ''));
-        if (!isNaN(cur) && !isNaN(orig) && orig > cur) {
-          var pct = Math.round((orig - cur) / orig * 100);
+        var orig = formatPrice(data.origPrice);
+        priceLine += '<span style="font-size:14px;color:#999;text-decoration:line-through;margin-right:8px;">' + esc(orig.main + orig.suffix) + '</span>';
+        if (!isNaN(cur.num) && !isNaN(orig.num) && orig.num > cur.num) {
+          var pct = Math.round((orig.num - cur.num) / orig.num * 100);
           priceLine += '<span class="nl-save-badge" style="display:inline-block;background-color:' + badgeColor + ';color:#ffffff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;vertical-align:baseline;line-height:1;">SAVE ' + pct + '%</span>';
         }
       }
-      c += '<tr><td class="nl-price-row" style="padding:0 16px 12px 16px;mso-line-height-rule:exactly;">' + priceLine + '</td></tr>';
     }
+    c += '<tr><td class="nl-price-row" height="' + PRICE_ROW_H + '" valign="middle" style="height:' + PRICE_ROW_H + 'px;padding:0 16px 12px 16px;line-height:32px;mso-line-height-rule:exactly;">' + priceLine + '</td></tr>';
     // CTA button (with VML fallback for Outlook)
     c += '<tr><td align="center" style="padding:0 16px 16px 16px;mso-line-height-rule:exactly;">';
     if (data.tagged) {
@@ -1797,10 +1836,7 @@
     var spBypass = document.getElementById('nlSponsoredBypass').checked;
     var spShowLabel = document.getElementById('nlSponsoredShowLabel').checked;
     if (spLink && !spBypass) {
-      var spAsinMatch = spLink.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
-      if (spAsinMatch) {
-        spLink = 'https://amazon.com/dp/' + spAsinMatch[1] + '?tag=' + getTag(nlBrand, 'spo');
-      }
+      spLink = affiliateAmazonUrl(spLink, getTag(nlBrand, 'spo')) || spLink;
     }
 
     var sponsoredHtml = '';
@@ -1832,6 +1868,7 @@
     // Style block for Outlook fixes (Gmail strips it, Outlook keeps it)
     html += '<style>\n';
     html += '  .nl-price-row span { margin-right:8px !important; }\n';
+    html += '  .nl-price-row .nl-price-suffix { margin-right:0 !important; }\n';
     html += '  .nl-save-badge { font-size:10px !important; padding:2px 6px !important; line-height:1 !important; vertical-align:baseline !important; }\n';
     html += '</style>\n';
 
@@ -1850,9 +1887,11 @@
       var cdAlt = esc(countdownCaption || 'Countdown');
       // Fixed-height crop: clip the watermark using a container whose height is the GIF's
       // displayed height (at 568px) minus the crop. No negative margin (Gmail strips those).
-      // Requires the GIF's natural dimensions (preloaded). Falls back to a plain image otherwise.
-      if (countdownCrop > 0 && nlCountdownDims && nlCountdownDims.url === countdownImg && nlCountdownDims.w) {
-        var dispH = NL_W * nlCountdownDims.h / nlCountdownDims.w;
+      // Requires the GIF's natural dimensions (preloaded, or known for the Prime presets). Falls back to a plain image otherwise.
+      var cdDims = (nlCountdownDims && nlCountdownDims.url === countdownImg && nlCountdownDims.w) ? nlCountdownDims
+        : (primeDayKnownImgs[countdownImg] ? primeDayDefaults.dims : null);
+      if (countdownCrop > 0 && cdDims) {
+        var dispH = NL_W * cdDims.h / cdDims.w;
         var visH = Math.max(1, Math.round(dispH - countdownCrop));
         html += '<div style="max-width:' + NL_W + 'px;height:' + visH + 'px;overflow:hidden;line-height:0;font-size:0;margin:0 auto;">';
         html += '<img alt="' + cdAlt + '" src="' + esc(countdownImg) + '" width="' + NL_W + '" style="display:block;width:100%;max-width:' + NL_W + 'px;border:0;" />';
@@ -1899,14 +1938,7 @@
       var bypass = card.querySelector('.nl-skip-affiliate').checked;
       var tagged = null;
       if (url) {
-        if (bypass) {
-          tagged = url;
-        } else {
-          var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
-          if (asinMatch) {
-            tagged = 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag;
-          }
-        }
+        tagged = bypass ? url : affiliateAmazonUrl(url, tag);
       }
 
       // Skip completely empty products
@@ -2382,14 +2414,7 @@
       var bypass = card.querySelector('.db-bypass').checked;
       var tagged = null;
       if (url) {
-        if (bypass) {
-          tagged = url;
-        } else {
-          var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
-          if (asinMatch) {
-            tagged = 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag;
-          }
-        }
+        tagged = bypass ? url : affiliateAmazonUrl(url, tag);
       }
       if (title || url) {
         products.push({ title: title, url: url, cta: cta, img: img, price: price, origPrice: origPrice, tagged: tagged });
@@ -2547,10 +2572,7 @@
 
     // When bypass is off, tag Amazon links with [brand]-spo-20
     if (link && !bypass) {
-      var sbAsinMatch = link.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
-      if (sbAsinMatch) {
-        link = 'https://amazon.com/dp/' + sbAsinMatch[1] + '?tag=' + getTag(sbBrand, 'spo');
-      }
+      link = affiliateAmazonUrl(link, getTag(sbBrand, 'spo')) || link;
     }
 
     var html = buildSponsoredBlock(img, headline, body, cta, link, colors.cta, showLabel);
@@ -2734,8 +2756,7 @@
   function fpTagUrl(url, skipAffiliate, tag) {
     if (!url) return null;
     if (skipAffiliate) return url;
-    var asinMatch = url.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
-    return asinMatch ? 'https://amazon.com/dp/' + asinMatch[1] + '?tag=' + tag : url;
+    return affiliateAmazonUrl(url, tag) || url;
   }
 
   // Rewrite image URLs to request a smaller pre-resized image directly from the source CDN.
@@ -2806,13 +2827,14 @@
         else bb += '[IMG width="' + imgWidth + '"]' + smallImg + '[/IMG]\n';
       }
       if (d.price) {
-        var priceLine = '[SIZE=5][B]$' + d.price + '[/B][/SIZE]';
+        var cur = formatPrice(d.price);
+        var priceLine = '[SIZE=5][B]' + cur.main + '[/B][/SIZE]';
+        if (cur.suffix) priceLine += '[SIZE=3]' + cur.suffix + '[/SIZE]';
         if (d.origPrice) {
-          priceLine += '  [S]$' + d.origPrice + '[/S]';
-          var cur = parseFloat(d.price.replace(/,/g, ''));
-          var orig = parseFloat(d.origPrice.replace(/,/g, ''));
-          if (!isNaN(cur) && !isNaN(orig) && orig > cur) {
-            var pct = Math.round((orig - cur) / orig * 100);
+          var orig = formatPrice(d.origPrice);
+          priceLine += '  [S]' + orig.main + orig.suffix + '[/S]';
+          if (!isNaN(cur.num) && !isNaN(orig.num) && orig.num > cur.num) {
+            var pct = Math.round((orig.num - cur.num) / orig.num * 100);
             priceLine += '  [COLOR=#2d8e3c][B]SAVE ' + pct + '%[/B][/COLOR]';
           }
         }
